@@ -1,21 +1,23 @@
-<script>
+<script lang="ts">
   import { fly } from "svelte/transition";
+
+  let { class: className = "" }: { class?: string } = $props();
 </script>
 
-<div class="spinner text-dark {$$props.class}" in:fly={{ y: -24 }}>
-  <div class="bounce1" />
-  <div class="bounce2" />
-  <div class="bounce3" />
+<div class="spinner text-dark {className}" in:fly={{ y: -24 }}>
+  <div class="bounce1"></div>
+  <div class="bounce2"></div>
+  <div class="bounce3"></div>
 </div>
 
-<style lang="postcss">
+<style>
   .spinner {
-    margin: 0 auto 0;
+    margin: 0 auto;
     text-align: center;
   }
 
   .spinner > div {
-    @apply bg-current;
+    background-color: currentColor;
     width: 9px;
     height: 9px;
     border-radius: 100%;

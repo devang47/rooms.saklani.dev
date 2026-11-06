@@ -1,66 +1,59 @@
 <script lang="ts">
-  import QRCode from "qrcode";
-  import Dustbin from "$lib/icons/Dustbin.svelte";
-  import { roomData, roomMessages } from "$stores";
-  import { addNotification } from "$utils/notifications";
-  import { onDestroy, tick } from "svelte";
-  import Modal from "./Modal.svelte";
-  import { ROOM_TTL_MS } from "$helpers/Room";
+  import { onDestroy } from "svelte";
+  import Dustbin from "#lib/icons/Dustbin.svelte";
+  import Modal from "#lib/sections/Modal.svelte";
+  import { roomData, roomMessages } from "#lib/stores/index.ts";
+  import { addNotification } from "#lib/utils/notifications.ts";
+  import { ROOM_TTL_MS } from "#lib/helpers/Room.ts";
 
-  export let roomId: string;
-  export let handleDeleteRoom: () => void;
+  let {
+    roomId,
+    handleDeleteRoom,
+  }: { roomId: string; handleDeleteRoom: () => void } = $props();
 
   const copyText = () => {
     navigator.clipboard.writeText(roomId);
-
     addNotification("Copied to clipboard!", false);
   };
 
   // Recomputed from the clock every second, so it can't drift or go negative.
-  let now = Date.now();
+  let now = $state(Date.now());
   const clock = setInterval(() => (now = Date.now()), 1000);
   onDestroy(() => clearInterval(clock));
 
   const pad = (n: number) => String(n).padStart(2, "0");
-  $: remaining = Math.max(0, ($roomData?.timestamp ?? 0) + ROOM_TTL_MS - now);
-  $: timeRemainingBeforeRoomDeletion = !$roomData?.timestamp
-    ? ""
-    : remaining
-      ? `${pad(Math.floor(remaining / 60000))}:${pad(Math.floor(remaining / 1000) % 60)}`
-      : "Expired";
-  let isQrModalOpen = false;
+  const remaining = $derived(
+    Math.max(0, ($roomData?.timestamp ?? 0) + ROOM_TTL_MS - now),
+  );
+  const timeLeft = $derived(
+    !$roomData?.timestamp
+      ? ""
+      : remaining
+        ? `${pad(Math.floor(remaining / 60000))}:${pad(Math.floor(remaining / 1000) % 60)}`
+        : "Expired",
+  );
 
-  let canvasEl: HTMLCanvasElement;
-  const createQrCode = async () => {
-    isQrModalOpen = true;
-
-    await tick();
-
-    QRCode.toCanvas(
-      canvasEl,
-      `${location.origin}/room/${roomId ?? ""}`,
-      { width: 300 },
-      function (error: any) {
-        if (error) console.error(error);
-      }
-    );
+  // QR library is only downloaded when someone opens the QR code.
+  let qrSvg = $state<string>();
+  const showQrCode = async () => {
+    const { renderSVG } = await import("uqr");
+    qrSvg = renderSVG(`${location.origin}/room/${roomId}`);
   };
-
 </script>
 
 <header>
-  <a href="/" on:click={() => ($roomMessages = [])}>
+  <a href="/" onclick={() => ($roomMessages = [])}>
     <h1 class="sans cursor-pointer">ChatRooms</h1>
   </a>
   <div class="flex items-center gap-3 lg:gap-5">
-    <div class="text-light text-[15px] hidden sm:block">
-      {timeRemainingBeforeRoomDeletion}
+    <div class="hidden text-[15px] text-light sm:block">
+      {timeLeft}
     </div>
 
     <button
       aria-label="view qr code"
-      class="btn-secondary !px-2"
-      on:click={createQrCode}
+      class="btn-secondary px-2!"
+      onclick={showQrCode}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -77,7 +70,7 @@
     <button
       aria-label="copy room id"
       class="btn-secondary group"
-      on:click={copyText}
+      onclick={copyText}
     >
       {#each (roomId || "").split("") as letter}
         <span class="letter">
@@ -89,7 +82,7 @@
     <button
       aria-label="delete room"
       title="delete room"
-      on:click={handleDeleteRoom}
+      onclick={handleDeleteRoom}
       class="delete-btn"
     >
       <Dustbin />
@@ -97,8 +90,11 @@
   </div>
 </header>
 
-{#if isQrModalOpen}
-  <Modal onClose={() => (isQrModalOpen = false)}>
-    <canvas class="w-full" bind:this={canvasEl} />
+{#if qrSvg}
+  <Modal onClose={() => (qrSvg = undefined)}>
+    <!-- SVG markup generated locally by uqr from our own URL. -->
+    <div class="w-[min(300px,80vw)] py-2 [&_svg]:h-auto [&_svg]:w-full">
+      {@html qrSvg}
+    </div>
   </Modal>
 {/if}

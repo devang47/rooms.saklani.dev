@@ -1,11 +1,15 @@
 <script lang="ts">
-  export let color = "white";
+  interface Props {
+    color?: string;
+  }
+
+  let { color = "white" }: Props = $props();
 </script>
 
 <svg
   xmlns="http://www.w3.org/2000/svg"
   width="22"
-  class="flex-shrink-0 translate-x-0.5"
+  class="shrink-0 translate-x-0.5"
   preserveAspectRatio="xMidYMid meet"
   viewBox="0 0 24 24"
   ><path

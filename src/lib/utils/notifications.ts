@@ -1,4 +1,4 @@
-import { notifications } from "$stores";
+import { notifications } from "#lib/stores/index.ts";
 
 let nextId = 0;
 

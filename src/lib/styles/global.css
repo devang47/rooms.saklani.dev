@@ -1,0 +1,131 @@
+@import "tailwindcss";
+
+@import "./_homepage.css" layer(components);
+@import "./_join.css" layer(components);
+@import "./_chat.css" layer(components);
+@import "./_button.css" layer(components);
+
+@theme {
+  --color-dark: #38404a;
+  --color-light: #f6f6f6;
+
+  --ease-cubic-ease: cubic-bezier(0.77, 0, 0.175, 1);
+
+  --font-mono: JetBrains Mono, monospace;
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  /* Tailwind v4 dropped the pointer cursor on buttons; keep v3's behaviour. */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@layer components {
+  @font-face {
+    font-family: "RegulatorNovaBold";
+    font-style: normal;
+    font-display: swap;
+    src:
+      local("RegulatorNovaBold"),
+      url("/fonts/RegulatorNovaBold.woff2") format("woff2");
+  }
+
+  .sans {
+    font-family:
+      "RegulatorNovaBold",
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      Oxygen,
+      Ubuntu,
+      Cantarell,
+      "Open Sans",
+      "Helvetica Neue",
+      sans-serif;
+  }
+
+  * {
+    @apply leading-[1.6];
+  }
+
+  html,
+  body {
+    @apply h-full w-full overflow-x-hidden antialiased;
+    background-color: #f2f2f2;
+  }
+
+  body {
+    font-family: "JetBrains Mono", monospace;
+  }
+
+  .transition-join-page {
+    @apply fixed top-0 right-0 left-0 z-40 h-0 w-full bg-light;
+  }
+
+  button {
+    @apply shrink-0 outline-offset-4 focus:outline-2 focus:outline-gray-800;
+  }
+
+  /* Intro animations (were GSAP). Pure CSS, so the prerendered HTML animates before JS loads. */
+  .homepage .bg,
+  .join-room-page .bg {
+    animation: grow-width 0.9s 0.2s cubic-bezier(0.215, 0.61, 0.355, 1) both;
+  }
+  .homepage .content,
+  .join-room-page .content {
+    animation: fade-in 0.4s 0.4s both;
+  }
+  .moveable-block {
+    animation: settle 0.4s 0.5s both;
+  }
+}
+
+@keyframes grow-width {
+  from {
+    width: 0;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes settle {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

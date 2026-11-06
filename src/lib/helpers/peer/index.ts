@@ -7,10 +7,10 @@ import {
   currentUserVideoRef,
   remoteUserVideoRef,
   videoCallDialogOpen,
-} from "$stores";
-import { addNotification } from "$utils/notifications";
-import { askConfirm } from "$utils/confirm";
-import { generateRandomName } from "$utils";
+} from "#lib/stores/index.ts";
+import { addNotification } from "#lib/utils/notifications.ts";
+import { askConfirm } from "#lib/utils/confirm.ts";
+import { generateRandomName } from "#lib/utils/index.ts";
 
 export const MAX_P2P_FILE_SIZE = 100 * 1024 * 1024; // whole file is held in memory on both ends
 const CONNECT_TIMEOUT_MS = 60_000; // the other side has to click "Accept"

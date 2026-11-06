@@ -1,28 +1,22 @@
 <script lang="ts">
-  import { clickOutside } from "$lib/hooks/useClickOutside";
-  import { fade, scale } from "svelte/transition";
+  import type { Snippet } from "svelte";
 
-  export let onClose: () => void;
+  let { onClose, children }: { onClose: () => void; children: Snippet } =
+    $props();
+
+  let dialog: HTMLDialogElement;
+  $effect(() => dialog.showModal());
 </script>
 
-<svelte:window on:keydown={(e) => e.key === "Escape" && onClose()} />
-
-<section transition:fade={{ duration: 200 }}>
-  <div
-    transition:scale={{ start: 0.9, opacity: 0, duration: 200 }}
-    use:clickOutside={onClose}
-    class="modal"
-  >
-    <slot />
+<!-- Native modal <dialog>: focus trap, Escape and top layer for free. A click whose target is
+     the <dialog> itself landed on the backdrop (the content lives in the inner div). -->
+<dialog
+  bind:this={dialog}
+  onclose={onClose}
+  onclick={(e) => e.target === dialog && dialog.close()}
+  class="m-auto h-fit w-fit max-w-md animate-[fade-in_0.2s] rounded-lg bg-light p-0 backdrop:bg-black/50"
+>
+  <div class="px-4 py-2">
+    {@render children()}
   </div>
-</section>
-
-<style lang="postcss">
-  section {
-    @apply bg-black/50 flex items-center justify-center fixed inset-0 w-full h-full z-50;
-  }
-
-  .modal {
-    @apply px-4 py-2 bg-light rounded-lg w-fit max-w-md h-fit;
-  }
-</style>
+</dialog>

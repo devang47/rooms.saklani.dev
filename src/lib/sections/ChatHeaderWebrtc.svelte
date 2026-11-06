@@ -1,17 +1,17 @@
 <script lang="ts">
-import { connectionState } from "$stores";
-import { addNotification } from "$utils/notifications";
-import { startPeer, stopPeer } from "$helpers/peer";
+  import { connectionState } from "#lib/stores/index.ts";
+  import { addNotification } from "#lib/utils/notifications.ts";
+  import { startPeer, stopPeer } from "#lib/helpers/peer/index.ts";
 
-const copyText = () => {
-  if (!$connectionState.id) return;
-  navigator.clipboard.writeText($connectionState.id);
+  const copyText = () => {
+    if (!$connectionState.id) return;
+    navigator.clipboard.writeText($connectionState.id);
 
-  addNotification("Copied to clipboard!", false);
-};
+    addNotification("Copied to clipboard!", false);
+  };
 </script>
 
-<header class="!rounded-t-lg md:!px-6">
+<header class="rounded-t-lg! md:px-6!">
   <a href="/">
     <h1 class="sans cursor-pointer whitespace-nowrap">P2P Rooms</h1>
   </a>
@@ -39,8 +39,8 @@ const copyText = () => {
     {#if $connectionState.id}
       <button
         aria-label="copy room id"
-        class="relative flex cursor-pointer items-center justify-center gap-1 overflow-hidden rounded bg-[#D9D9D9] px-3 py-1.5 text-[15px] text-sm font-extrabold text-[#38404A] md:px-4 md:py-2"
-        on:click={copyText}
+        class="relative flex cursor-pointer items-center justify-center gap-1 overflow-hidden rounded-sm bg-[#D9D9D9] px-3 py-1.5 text-sm text-[15px] font-extrabold text-dark md:px-4 md:py-2"
+        onclick={copyText}
       >
         {$connectionState.id}
       </button>
@@ -48,9 +48,9 @@ const copyText = () => {
 
     <button
       aria-label="toggle peerjs server"
-      class="relative flex cursor-pointer items-center justify-center gap-1 overflow-hidden rounded bg-[#D9D9D9] px-3 py-1.5 text-[15px] text-sm font-extrabold text-[#38404A] md:px-4 md:py-2"
+      class="relative flex cursor-pointer items-center justify-center gap-1 overflow-hidden rounded-sm bg-[#D9D9D9] px-3 py-1.5 text-sm text-[15px] font-extrabold text-dark md:px-4 md:py-2"
       disabled={$connectionState.loading}
-      on:click={$connectionState.started ? stopPeer : startPeer}
+      onclick={$connectionState.started ? stopPeer : startPeer}
     >
       {#if $connectionState.started}
         Stop

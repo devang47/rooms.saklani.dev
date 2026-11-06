@@ -1,18 +1,26 @@
 <script lang="ts">
-  let btn: HTMLButtonElement;
+  import type { Snippet } from "svelte";
+  import type { HTMLButtonAttributes } from "svelte/elements";
 
-  export let error: boolean = false;
-  export let type: "submit" | "reset" | "button" = "button";
-  export let label: string = "default label";
+  let {
+    error = false,
+    label,
+    type = "button",
+    class: className = "",
+    children,
+    ...rest
+  }: HTMLButtonAttributes & {
+    error?: boolean;
+    label: string;
+    children?: Snippet;
+  } = $props();
 </script>
 
 <button
-  on:click
-  aria-label={label}
-  bind:this={btn}
-  class:error
+  {...rest}
   {type}
-  class={`arrow-button group shadow-custom ${$$props.class}`}
+  aria-label={label}
+  class={["arrow-button group", className, { error }]}
 >
-  <slot />
+  {@render children?.()}
 </button>

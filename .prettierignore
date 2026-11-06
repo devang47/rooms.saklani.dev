@@ -1,0 +1,10 @@
+build
+.svelte-kit
+node_modules
+test-results
+playwright-report
+pnpm-lock.yaml
+firebase-functions/yarn.lock
+firebase-functions/node_modules
+static
+*.rules

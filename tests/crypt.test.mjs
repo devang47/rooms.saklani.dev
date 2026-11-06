@@ -7,7 +7,7 @@ import {
   decrypt,
   randomString,
   CODE_ALPHABET,
-} from "../src/helpers/crypt.ts";
+} from "../src/lib/helpers/crypt.ts";
 
 test("same code (any case) derives the same doc ID; different codes don't", async () => {
   const a = await roomKeys("abc123");

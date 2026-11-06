@@ -24,7 +24,7 @@ const startPeer = async (browser: Browser) => {
     };
   });
   const page = await context.newPage();
-  await page.goto("/p2p");
+  await page.goto("/p2p", { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Start server" }).click();
   const idButton = page.getByRole("button", { name: "copy room id" });
   await expect(idButton).toHaveText(/^\s*[a-z_-]+-[a-z0-9]{4}\s*$/);

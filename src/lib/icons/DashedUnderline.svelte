@@ -1,5 +1,5 @@
 <svg
-  class="w-full flex-shrink-0"
+  class="w-full shrink-0"
   viewBox="0 0 297 10"
   fill="none"
   xmlns="http://www.w3.org/2000/svg"

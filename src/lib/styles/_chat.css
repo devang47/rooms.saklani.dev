@@ -26,7 +26,7 @@ section.chat-ui {
   }
 
   .delete-btn {
-    @apply flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-light border-opacity-30 duration-150 hover:bg-light hover:bg-opacity-10 md:h-9 md:w-9;
+    @apply flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-light/30 duration-150 hover:bg-light/10 md:h-9 md:w-9;
     svg {
       @apply w-3.5 md:w-4;
     }
@@ -42,7 +42,7 @@ section.chat-ui {
 }
 
 .btn-secondary {
-  @apply relative flex cursor-pointer items-center justify-center gap-1 overflow-hidden rounded bg-[#D9D9D9] px-4 py-1 text-[15px] font-extrabold text-[#38404A];
+  @apply relative flex cursor-pointer items-center justify-center gap-1 overflow-hidden rounded-sm bg-[#D9D9D9] px-4 py-1 text-[15px] font-extrabold text-[#38404A];
 
   box-shadow:
     0px 6px 25px rgba(0, 0, 0, 0.11),
@@ -67,7 +67,7 @@ section.chat-ui {
 
 .chat-input {
   textarea {
-    @apply h-32 w-full resize-none rounded-[20px] border border-black/10 bg-light px-6 py-4 text-[15px] font-medium text-dark outline-none focus:outline-[2px] focus:outline-offset-4 focus:outline-dark/70 md:rounded-[38px] md:px-10 md:py-6;
+    @apply h-32 w-full resize-none rounded-[20px] border border-black/10 bg-light px-6 py-4 text-[15px] font-medium text-dark outline-hidden focus:outline-2 focus:outline-offset-4 focus:outline-dark/70 md:rounded-[38px] md:px-10 md:py-6;
 
     box-shadow:
       0px 0.4px 1.1px rgba(0, 0, 0, 0.005),
@@ -118,10 +118,10 @@ section.chat-ui {
 }
 
 .message-item {
-  @apply relative w-full min-w-[0] max-w-fit rounded-[20px] rounded-tr-md border border-black/10 bg-light px-4 py-3 pr-12 text-left text-[15px] leading-6 text-[#38404A] sm:w-fit sm:max-w-md sm:px-6 sm:py-5 sm:pr-14 md:rounded-[24px] md:rounded-tr-xl md:px-8 md:pr-14;
+  @apply relative w-full max-w-fit min-w-0 rounded-[20px] rounded-tr-md border border-black/10 bg-light px-4 py-3 pr-12 text-left text-[15px] leading-6 text-[#38404A] sm:w-fit sm:max-w-md sm:px-6 sm:py-5 sm:pr-14 md:rounded-[24px] md:rounded-tr-xl md:px-8 md:pr-14;
 
   p {
-    @apply w-full break-words;
+    @apply w-full wrap-break-word;
     word-wrap: break-word;
     white-space: pre-wrap;
   }
@@ -131,7 +131,7 @@ section.chat-ui {
   }
 
   .copy-btn {
-    @apply absolute right-2 top-2 flex h-8 w-7 items-center justify-center rounded-md border-white/20 bg-dark duration-150 sm:right-3 sm:top-3 sm:h-9 sm:w-8 lg:rounded-lg;
+    @apply absolute top-2 right-2 flex h-8 w-7 items-center justify-center rounded-md border-white/20 bg-dark duration-150 sm:top-3 sm:right-3 sm:h-9 sm:w-8 lg:rounded-lg;
 
     svg {
       @apply w-3 sm:w-4;
@@ -179,18 +179,18 @@ section.chat-ui {
   }
 
   .commands-table {
-    @apply mx-auto mt-12 w-fit rounded bg-opacity-[3%] px-3 py-2.5 md:px-4 md:py-3;
+    @apply mx-auto mt-12 w-fit rounded-sm px-3 py-2.5 md:px-4 md:py-3;
   }
 
   table {
     @apply border-collapse gap-6 text-left text-sm font-medium md:text-[15px];
 
     td {
-      @apply mr-1 border-collapse whitespace-nowrap border-[1.2px] border-dark/40 px-3 py-2 text-dark/70 sm:mr-2 md:px-4 md:py-3;
+      @apply mr-1 border-collapse border-[1.2px] border-dark/40 px-3 py-2 whitespace-nowrap text-dark/70 sm:mr-2 md:px-4 md:py-3;
     }
 
     code {
-      @apply whitespace-nowrap rounded bg-dark/10 p-1 px-1 text-xs text-dark/70 md:text-sm;
+      @apply rounded-sm bg-dark/10 p-1 px-1 text-xs whitespace-nowrap text-dark/70 md:text-sm;
     }
   }
 }

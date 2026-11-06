@@ -1,10 +1,12 @@
 import { writable } from "svelte/store";
 
 export const roomMessages = writable<any>([]);
-export let loading = writable<boolean>(true);
-export let loadingUpload = writable<boolean>(false);
-export let notifications = writable<CustomNotification[]>([]);
-export let roomData = writable<any>(false);
+// Off by default so prerendered pages paint immediately; pages that load data turn it on.
+export const loading = writable<boolean>(false);
+/** Upload progress in percent while a file uploads, otherwise null. */
+export const uploadProgress = writable<number | null>(null);
+export const notifications = writable<CustomNotification[]>([]);
+export const roomData = writable<any>(false);
 
 export interface ConnectionState {
   readonly id?: string;

@@ -2,21 +2,21 @@ section.join-room-page {
   @apply mx-auto h-full w-full max-w-[1500px] bg-[#F2F2F2] px-4 py-4 text-center md:px-14 md:py-8;
 
   .container {
-    @apply relative z-[1] mx-auto mb-5 h-full min-h-[460px] w-full rounded-[30px] px-6 py-3 md:rounded-[40px];
+    @apply relative z-1 mx-auto mb-5 h-full min-h-[460px] w-full rounded-[30px] px-6 py-3 md:rounded-[40px];
     .bg {
-      @apply absolute left-1/2 top-1/2 z-[-1] mx-auto h-full w-0 -translate-x-1/2 -translate-y-1/2 rounded-[30px] bg-[#555E69] bg-cover bg-center;
+      @apply absolute top-1/2 left-1/2 z-[-1] mx-auto h-full w-full -translate-x-1/2 -translate-y-1/2 rounded-[30px] bg-[#555E69] bg-cover bg-center;
       background-image: url(https://res.cloudinary.com/dyn3sdtfm/image/upload/q_80/v1663210261/bg2_m6wgnr.webp);
     }
   }
 
   h1 {
-    @apply relative mt-20 text-[40px] font-bold text-white text-opacity-90 sm:text-[55px] md:text-[70px] lg:text-[80px];
+    @apply relative mt-20 text-[40px] font-bold text-white/90 sm:text-[55px] md:text-[70px] lg:text-[80px];
   }
 
   .roomid-input {
     @apply relative mx-auto mt-14 w-fit rounded-[10px] border-2 border-dashed border-[#7F8691] px-4 py-[15px];
     input {
-      @apply w-[170px] rounded-[10px] border-none bg-[#818791] px-6 py-3 pr-[10px] font-bold uppercase tracking-[0.8rem] text-white outline-none duration-100 ease-in placeholder:text-white placeholder:text-opacity-50;
+      @apply w-[170px] rounded-[10px] border-none bg-[#818791] px-6 py-3 pr-[10px] font-bold tracking-[0.8rem] text-white uppercase outline-hidden duration-100 ease-in placeholder:text-white/50;
       box-shadow:
         0px 0.4px 0.5px rgba(0, 0, 0, 0.012),
         0px 1px 1.1px rgba(0, 0, 0, 0.017),
@@ -56,10 +56,10 @@ section.join-room-page {
     @apply mt-5 text-sm text-white;
 
     button {
-      @apply relative z-[1] duration-[0.3s] ease-cubic-ease;
+      @apply relative z-1 duration-300 ease-cubic-ease;
       &::before {
         content: "";
-        @apply absolute bottom-0 left-0 z-[-1] h-[1px] w-full bg-white duration-[0.5s] ease-cubic-ease;
+        @apply absolute bottom-0 left-0 z-[-1] h-px w-full bg-white duration-500 ease-cubic-ease;
       }
 
       &:hover {

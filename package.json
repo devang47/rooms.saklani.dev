@@ -2,6 +2,14 @@
   "name": "roomssaklanidev",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.4",
+  "engines": {
+    "node": ">=22.17"
+  },
+  "imports": {
+    "#lib/*": "./src/lib/*"
+  },
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
@@ -17,40 +25,25 @@
     "preview:pages": "vite build && npx -y wrangler@4 pages dev build --port 8788",
     "test:e2e": "npx -y firebase-tools@13 emulators:exec --project demo-rooms --only auth,firestore,storage \"playwright test\""
   },
-  "devDependencies": {
-    "@firebase/rules-unit-testing": "^2.0.7",
-    "@playwright/test": "^1.65.0",
-    "@sveltejs/adapter-static": "^2.0.3",
-    "@sveltejs/kit": "1.15.7",
-    "@types/countdown": "^0.0.8",
-    "@types/html-minifier": "^4.0.2",
-    "@types/qrcode": "^1.5.5",
-    "@types/uuid": "^9.0.1",
-    "autoprefixer": "^10.4.14",
-    "postcss": "^8.4.22",
-    "prettier": "^3.5.3",
-    "prettier-plugin-svelte": "^3.3.3",
-    "prettier-plugin-tailwindcss": "^0.6.11",
-    "svelte": "^3.58.0",
-    "svelte-check": "^3.2.0",
-    "svelte-preprocess": "^5.0.3",
-    "svelte-seo": "^1.5.3",
-    "tailwindcss": "^3.3.1",
-    "tslib": "^2.5.0",
-    "typescript": "^5.0.4",
-    "vite": "^4.2.1"
-  },
-  "type": "module",
   "dependencies": {
-    "clsx": "^1.2.1",
-    "countdown": "^2.6.0",
-    "firebase": "^9.19.1",
-    "gsap": "^3.11.5",
-    "html-minifier": "^4.0.0",
-    "peerjs": "^1.5.4",
-    "qrcode": "^1.5.3",
-    "sass": "^1.62.0",
-    "unique-names-generator": "^4.7.1"
+    "firebase": "^13.2.0",
+    "peerjs": "^1.5.5",
+    "uqr": "^0.1.3"
   },
-  "packageManager": "pnpm@10.33.4"
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@playwright/test": "^1.65.0",
+    "@sveltejs/adapter-static": "^4.0.1",
+    "@sveltejs/kit": "^3.1.1",
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "@tailwindcss/vite": "^4.3.5",
+    "prettier": "^3.9.10",
+    "prettier-plugin-svelte": "^4.1.1",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "svelte": "^5.57.3",
+    "svelte-check": "^4.7.8",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.6"
+  }
 }

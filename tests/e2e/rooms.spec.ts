@@ -6,7 +6,7 @@ test("rooms: create, chat across two browsers, delete", async ({ browser }) => {
   a.on("pageerror", (e) => console.log("[A] pageerror", e.message));
   const b = await (await browser.newContext()).newPage();
 
-  await a.goto("/");
+  await a.goto("/", { waitUntil: "networkidle" });
   await a.getByRole("button", { name: "create a room" }).click();
   await a.waitForURL(/\/room\/[A-Z0-9]{6}$/);
 
@@ -18,7 +18,7 @@ test("rooms: create, chat across two browsers, delete", async ({ browser }) => {
   );
 
   // Second browser decrypts it with the code from the URL.
-  await b.goto(a.url());
+  await b.goto(a.url()); // no networkidle: Firestore keeps a long-poll open
   await expect(b.locator(".message-item.left-aligned")).toContainText(
     "hello from A",
   );
@@ -32,6 +32,20 @@ test("rooms: create, chat across two browsers, delete", async ({ browser }) => {
   await input.press("Enter");
   await expect(a.locator(".message-item.left-aligned")).toContainText("line 2");
 
+  // QR code (lazy-loaded) opens in a modal and Escape closes it.
+  await a.getByRole("button", { name: "view qr code" }).click();
+  await expect(a.locator("dialog[open] svg")).toBeVisible();
+  await a.keyboard.press("Escape");
+  await expect(a.locator("dialog[open]")).toHaveCount(0);
+
+  // Upload (lazy-loaded Storage) puts the download URL into the input.
+  await a.locator('input[type="file"]').setInputFiles({
+    name: "hello.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("hi"),
+  });
+  await expect(a.locator("#input")).toHaveValue(/hello\.txt/);
+
   // Deleting sends both browsers home.
   await a.getByRole("button", { name: "delete room" }).click();
   await a.waitForURL("/");
@@ -42,7 +56,7 @@ test("rooms: create, chat across two browsers, delete", async ({ browser }) => {
 });
 
 test("rooms: joining an unknown code shows not found", async ({ page }) => {
-  await page.goto("/room");
+  await page.goto("/room", { waitUntil: "networkidle" });
   await page.getByPlaceholder("xxxxxx").fill("ZZZZZ9");
   await page.getByRole("button", { name: "Join room" }).click();
   await expect(page.getByText("404 Not found!")).toBeVisible();

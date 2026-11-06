@@ -1,4 +1,4 @@
-import { db, storage, ensureAuth, track } from "../utils/config";
+import { db, ensureAuth } from "#lib/utils/config.ts";
 import {
   doc,
   addDoc,
@@ -13,9 +13,13 @@ import {
   serverTimestamp,
   type Timestamp,
 } from "firebase/firestore";
-import { listAll, ref, deleteObject } from "firebase/storage";
-import { roomMessages } from "$stores";
-import { decrypt, encrypt, randomString, roomKeys } from "./crypt";
+import { roomMessages } from "#lib/stores/index.ts";
+import {
+  decrypt,
+  encrypt,
+  randomString,
+  roomKeys,
+} from "#lib/helpers/crypt.ts";
 
 export const MAX_MESSAGE_LENGTH = 10_000;
 export const ROOM_TTL_MS = 15 * 60 * 1000; // keep in sync with the rules and cleanup function
@@ -34,7 +38,6 @@ export const createRoom = async () => {
 
   // Rules only allow `create`, so a (very unlikely) code collision fails instead of hijacking a room.
   await setDoc(doc(db, "rooms", id), { createdAt: serverTimestamp() });
-  track("room_created");
 
   return code;
 };
@@ -54,7 +57,6 @@ export const addMessage = async ({
     timestamp: Date.now(),
     device: getDeviceId(),
   });
-  track("message_pushed");
 };
 
 /**
@@ -117,7 +119,6 @@ export const getRoomMessages = async (
 export const checkIfRoomExists = async (roomId: string) => {
   await ensureAuth();
   const { id } = await roomKeys(roomId);
-  track("check_for_room_existance");
 
   try {
     const snap = await getDoc(doc(db, "rooms", id));
@@ -135,12 +136,11 @@ export const deleteRoom = async (roomId: string) => {
   const { id } = await roomKeys(roomId);
 
   // Files and messages first: rules only allow listing them while the room doc exists.
-  const files = await listAll(ref(storage, id));
-  await Promise.all(files.items.map((file) => deleteObject(file)));
+  const { deleteRoomFiles } = await import("#lib/helpers/storage.ts");
+  await deleteRoomFiles(id);
 
   const messages = await getDocs(collection(db, "rooms", id, "data"));
   await Promise.all(messages.docs.map((d) => deleteDoc(d.ref)));
 
   await deleteDoc(doc(db, "rooms", id));
-  track("room_deleted");
 };

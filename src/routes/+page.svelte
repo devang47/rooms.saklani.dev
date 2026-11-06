@@ -1,98 +1,59 @@
 <script lang="ts">
-import { goto } from "$app/navigation";
-import Button from "$lib/components/Button.svelte";
-import CircleAnimation from "$lib/components/CircleAnimation.svelte";
-import ArrowRight from "$lib/icons/ArrowRight.svelte";
-import CurvedArrowLine from "$lib/icons/CurvedArrowLine.svelte";
-import DashedUnderline from "$lib/icons/DashedUnderline.svelte";
-import Github from "$lib/icons/Github.svelte";
-import FloatingImages from "$lib/sections/FloatingImages.svelte";
-import { loading } from "$stores";
-import { createRoom } from "$helpers/Room";
-import { onMount } from "svelte";
-import { addNotification } from "$utils/notifications";
-import gsap, { Power3 } from "gsap";
+  import { goto } from "$app/navigation";
+  import { onMount } from "svelte";
+  import Button from "#lib/components/Button.svelte";
+  import CircleAnimation from "#lib/components/CircleAnimation.svelte";
+  import ArrowRight from "#lib/icons/ArrowRight.svelte";
+  import DashedUnderline from "#lib/icons/DashedUnderline.svelte";
+  import Github from "#lib/icons/Github.svelte";
+  import FloatingImages from "#lib/sections/FloatingImages.svelte";
+  import { loading } from "#lib/stores/index.ts";
+  import { addNotification } from "#lib/utils/notifications.ts";
+  import { coverScreen } from "#lib/utils/motion.ts";
 
-let roomId = "";
+  let formLoading = $state<"false" | "true" | "complete">("false");
 
-let formLoading = "false";
+  // Firebase is only downloaded once someone heads for "Create a room".
+  const loadRoom = () => import("#lib/helpers/Room.ts");
 
-const transitionJoinPageStart = (callback: () => void) => {
-  gsap
-    .to(".transition-join-page", {
-      height: "100%",
-      duration: 0.7,
-      ease: Power3.easeOut,
-    })
-    .then(callback);
-};
+  const handleCreateRoom = async () => {
+    formLoading = "true";
+    let roomId: string;
+    try {
+      roomId = await (await loadRoom()).createRoom();
+    } catch (err) {
+      console.error(err);
+      formLoading = "false";
+      addNotification("Couldn't create a room, please try again", true);
+      return;
+    }
+    formLoading = "complete";
 
-const handleCreateRoom = async () => {
-  formLoading = "true";
-  try {
-    roomId = await createRoom();
-  } catch (err) {
-    console.error(err);
-    formLoading = "false";
-    addNotification("Couldn't create a room, please try again", true);
-    return;
-  }
-  formLoading = "complete";
+    await coverScreen();
+    $loading = true;
+    goto(`/room/${roomId}`);
+  };
 
-  transitionJoinPageStart(() => {
-    setTimeout(() => {
-      $loading = true;
-      goto(`/room/${roomId}`);
-    }, 100);
-  });
-};
+  const handleGotoJoinPage = async () => {
+    await coverScreen();
+    goto("/room");
+  };
 
-const handleGotoJoinPage = () => {
-  transitionJoinPageStart(() => {
-    setTimeout(() => {
-      goto("/room");
-    }, 100);
-  });
-};
-
-onMount(() => {
-  loading.set(false);
-
-  const tl = gsap.timeline({});
-
-  tl.to(".bg", {
-    delay: 0.2,
-    width: "100%",
-    duration: 1,
-    ease: Power3.easeOut,
-  })
-    .to(".content", {
-      delay: -0.6,
-      opacity: 1,
-      duration: 0.4,
-    })
-    .to(".moveable-block", {
-      delay: -0.7,
-      x: 0,
-      y: 0,
-      opacity: 1,
-      duration: 0.4,
-    });
-});
+  onMount(() => loading.set(false));
 </script>
 
 <FloatingImages />
 
-<div class="transition-join-page" />
+<div class="transition-join-page"></div>
 
 <section class="homepage">
   <div
-    class="relative z-[1] mx-auto mb-5 flex h-full min-h-[600px] w-full flex-col items-center justify-center rounded-[30px] px-6 py-20 pb-10 font-mono md:rounded-[40px] md:py-4"
+    class="relative z-1 mx-auto mb-5 flex h-full min-h-[600px] w-full flex-col items-center justify-center rounded-[30px] px-6 py-20 pb-10 font-mono md:rounded-[40px] md:py-4"
   >
-    <div class="content opacity-0">
+    <div class="content">
       <div class="relative mx-auto w-fit">
         <h1
-          class="sans relative text-[40px] font-bold text-white text-opacity-90 sm:text-[55px] md:text-[70px] lg:text-[80px]"
+          class="sans relative text-[40px] font-bold text-white/90 sm:text-[55px] md:text-[70px] lg:text-[80px]"
         >
           ChatRooms
         </h1>
@@ -103,7 +64,7 @@ onMount(() => {
       </div>
 
       <p
-        class="mx-auto mt-4 max-w-md text-[14px] text-white text-opacity-70 sm:max-w-lg md:max-w-xl md:text-[16px]"
+        class="mx-auto mt-4 max-w-md text-[14px] text-white/70 sm:max-w-lg md:max-w-xl md:text-[16px]"
       >
         On this website, you can create a private chat room and share data
         across multiple devices.
@@ -129,15 +90,15 @@ onMount(() => {
 
             <li><span>✅</span> Auto delete all data after 15min</li>
 
-            <li><span>✅</span> Secure</li>
-
             <li><span>✅</span> Messages encrypted in your browser</li>
           </ul>
 
           <Button
             label="create a room"
             class="relative z-20 mt-5 w-[175px] text-sm md:w-[189px]"
-            on:click={handleCreateRoom}
+            onclick={handleCreateRoom}
+            onpointerenter={loadRoom}
+            onfocus={loadRoom}
           >
             {#if formLoading === "true"}
               <CircleAnimation class="w-[80px]" />
@@ -153,7 +114,7 @@ onMount(() => {
             or <button
               aria-label="Join existing room"
               title="Join existing room"
-              on:click={handleGotoJoinPage}
+              onclick={handleGotoJoinPage}
               class=""
             >
               Join room
@@ -207,7 +168,7 @@ onMount(() => {
             </li>
 
             <li>
-              <span>✅</span> 2 Device limit per room
+              <span>✅</span> Device to device, nothing stored on a server
             </li>
 
             <li>
@@ -223,29 +184,24 @@ onMount(() => {
             </li>
 
             <li>
-              <span>✅</span> Video calls (coming soon)
+              <span>✅</span> Video calls
             </li>
           </ul>
 
-          <a href="/p2p" tabindex="-1">
-            <Button
-              label="Start a P2P server"
-              class="relative z-20 mt-5 w-[175px] text-sm md:w-[189px]"
-            >
-              {#if formLoading === "true"}
-                <CircleAnimation class="w-[80px]" />
-              {/if}
-
-              <span class:btn-remove-text={formLoading !== "false"}>
-                Start server
-                <ArrowRight />
-              </span>
-            </Button>
+          <!-- A link styled as the button (a <button> inside <a> is invalid HTML). -->
+          <a
+            href="/p2p"
+            class="arrow-button group relative z-20 mt-5 block w-[175px] text-sm md:w-[189px]"
+          >
+            <span>
+              Start server
+              <ArrowRight />
+            </span>
           </a>
         </div>
       </div>
 
-      <div class="absolute right-6 top-4 w-7 text-sm text-white">
+      <div class="absolute top-4 right-6 w-7 text-sm text-white">
         <a
           href="https://github.com/Devang47/rooms.saklani.dev"
           target="_blank"
@@ -257,20 +213,22 @@ onMount(() => {
       </div>
     </div>
 
-    <div class="bg" />
+    <div class="bg"></div>
   </div>
 </section>
 
-<style lang="postcss">
-:global(html) {
-  @apply !overflow-hidden;
-}
+<style>
+  :global(html) {
+    overflow: hidden !important;
+  }
 
-li span {
-  @apply absolute left-0;
-}
+  li {
+    position: relative;
+    padding-left: 1.5rem;
+  }
 
-li {
-  @apply relative pl-6;
-}
+  li span {
+    position: absolute;
+    left: 0;
+  }
 </style>

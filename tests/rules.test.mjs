@@ -19,6 +19,7 @@ const msg = {
   device: "dev",
 };
 
+/** @type {import("@firebase/rules-unit-testing").RulesTestEnvironment} */
 let env;
 before(async () => {
   env = await initializeTestEnvironment({
@@ -35,6 +36,7 @@ beforeEach(async () => {
 
 const user = () => env.authenticatedContext("alice");
 const db = () => user().firestore();
+/** @param {number} ageMin */
 const seedRoom = (ageMin) =>
   env.withSecurityRulesDisabled((ctx) =>
     ctx
@@ -100,18 +102,28 @@ test("messages: validated shape, only in live rooms", async () => {
 });
 
 test("storage: 100 MB cap, only in live rooms", async () => {
+  /** @param {string} name */
   const file = (name) => user().storage().ref(`${ROOM}/${name}`);
   const small = new Uint8Array(1024);
 
-  await assertFails(file("none.txt").put(small)); // room doesn't exist
+  await assertFails(file("none.txt").put(small).then()); // room doesn't exist
   await seedRoom(1);
-  await assertSucceeds(file("ok.txt").put(small));
+  await assertSucceeds(file("ok.txt").put(small).then());
   await assertSucceeds(user().storage().ref(ROOM).listAll());
-  await assertFails(file("big.bin").put(new Uint8Array(100 * 1024 * 1024 + 1)));
   await assertFails(
-    env.unauthenticatedContext().storage().ref(`${ROOM}/anon.txt`).put(small),
+    file("big.bin")
+      .put(new Uint8Array(100 * 1024 * 1024 + 1))
+      .then(),
+  );
+  await assertFails(
+    env
+      .unauthenticatedContext()
+      .storage()
+      .ref(`${ROOM}/anon.txt`)
+      .put(small)
+      .then(),
   );
 
   await seedRoom(16);
-  await assertFails(file("late.txt").put(small));
+  await assertFails(file("late.txt").put(small).then());
 });

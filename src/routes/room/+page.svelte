@@ -1,111 +1,68 @@
 <script lang="ts">
-import { loading, roomData } from "$stores";
-import { checkIfRoomExists } from "$helpers/Room";
-import Button from "$lib/components/Button.svelte";
-import CircleAnimation from "$lib/components/CircleAnimation.svelte";
-import ArrowRight from "$lib/icons/ArrowRight.svelte";
-import DashedUnderline from "$lib/icons/DashedUnderline.svelte";
-import CurvedArrowLine from "$lib/icons/CurvedArrowLine.svelte";
-import { onMount } from "svelte";
-import { fly } from "svelte/transition";
-import { goto } from "$app/navigation";
-import { addNotification } from "$utils/notifications";
-import gsap, { Power3 } from "gsap";
-import FloatingImages from "$lib/sections/FloatingImages.svelte";
+  import { goto } from "$app/navigation";
+  import { onMount } from "svelte";
+  import { fly } from "svelte/transition";
+  import { loading, roomData } from "#lib/stores/index.ts";
+  import Button from "#lib/components/Button.svelte";
+  import CircleAnimation from "#lib/components/CircleAnimation.svelte";
+  import ArrowRight from "#lib/icons/ArrowRight.svelte";
+  import DashedUnderline from "#lib/icons/DashedUnderline.svelte";
+  import CurvedArrowLine from "#lib/icons/CurvedArrowLine.svelte";
+  import FloatingImages from "#lib/sections/FloatingImages.svelte";
+  import { addNotification } from "#lib/utils/notifications.ts";
+  import { coverScreen, expandButton } from "#lib/utils/motion.ts";
 
-let inputVal = "";
-let formLoading = "false";
-let roomExists = true;
-const joinRoom = async () => {
-  const code = inputVal.trim().toUpperCase();
-  if (!/^[A-Z0-9]{6}$/.test(code)) {
-    addNotification("Room codes are 6 letters or digits", true);
-    return;
-  }
-  formLoading = "true";
+  let inputVal = $state("");
+  let formLoading = $state<"false" | "true" | "complete">("false");
+  let roomExists = $state(true);
 
-  try {
-    $roomData = await checkIfRoomExists(code);
-  } catch {
-    formLoading = "false";
-    addNotification("Couldn't reach the server, please try again", true);
-    return;
-  }
-  if (!$roomData) {
-    formLoading = "false";
-    roomExists = false;
+  // Firebase is only downloaded once the user starts typing a code.
+  const loadRoom = () => import("#lib/helpers/Room.ts");
 
-    addNotification("404 Not found!", true);
+  const joinRoom = async (e: SubmitEvent) => {
+    e.preventDefault();
+    const code = inputVal.trim().toUpperCase();
+    if (!/^[A-Z0-9]{6}$/.test(code)) {
+      addNotification("Room codes are 6 letters or digits", true);
+      return;
+    }
+    formLoading = "true";
 
-    return null;
-  }
+    try {
+      $roomData = await (await loadRoom()).checkIfRoomExists(code);
+    } catch {
+      formLoading = "false";
+      addNotification("Couldn't reach the server, please try again", true);
+      return;
+    }
+    if (!$roomData) {
+      formLoading = "false";
+      roomExists = false;
+      addNotification("404 Not found!", true);
+      return;
+    }
 
-  roomExists = true;
-  formLoading = "complete";
-
-  gsap.to(".moveable-block", {
-    opacity: 0,
-    duration: 0.1,
-  });
-
-  gsap.to(".arrow-button", {
-    scale: 100,
-    duration: 0.3,
-    ease: "linear",
-  });
-
-  setTimeout(() => {
+    roomExists = true;
+    formLoading = "complete";
+    await expandButton(document.querySelector(".join-room-page .arrow-button"));
     goto("/room/" + code);
-  }, 800);
-};
+  };
 
-onMount(() => {
-  loading.set(false);
+  const handleGotoCreatePage = async () => {
+    await coverScreen();
+    goto("/");
+  };
 
-  const tl = gsap.timeline({});
-
-  tl.to(".bg", {
-    delay: 0.2,
-    width: "100%",
-    duration: 0.8,
-    ease: Power3.easeOut,
-  })
-    .to(".content", {
-      delay: -0.5,
-      opacity: 1,
-      duration: 0.4,
-    })
-    .to(".moveable-block", {
-      delay: -0.6,
-      x: 0,
-      y: 0,
-      opacity: 1,
-      duration: 0.4,
-    });
-});
-
-const handleGotoCreatePage = () => {
-  gsap
-    .to(".transition-join-page", {
-      height: "100%",
-      duration: 0.7,
-      ease: Power3.easeOut,
-    })
-    .then(() => {
-      setTimeout(() => {
-        goto("/");
-      }, 100);
-    });
-};
+  onMount(() => loading.set(false));
 </script>
 
 <FloatingImages />
 
-<div class="transition-join-page" />
+<div class="transition-join-page"></div>
 
 <section class="join-room-page">
   <div class="container">
-    <div class="content opacity-0">
+    <div class="content">
       <div class="relative mx-auto w-fit">
         <h1 class="sans">Join Room</h1>
         <span
@@ -114,10 +71,11 @@ const handleGotoCreatePage = () => {
         </span>
       </div>
 
-      <form action="#" on:submit|preventDefault={joinRoom}>
+      <form onsubmit={joinRoom}>
         <div class="roomid-input">
           <input
             bind:value={inputVal}
+            onfocus={loadRoom}
             class=""
             placeholder="xxxxxx"
             maxlength="6"
@@ -157,7 +115,7 @@ const handleGotoCreatePage = () => {
               aria-label="create a new room"
               type="button"
               title="Create room"
-              on:click={handleGotoCreatePage}
+              onclick={handleGotoCreatePage}
               class=""
             >
               Create room
@@ -167,6 +125,6 @@ const handleGotoCreatePage = () => {
       </form>
     </div>
 
-    <div class="bg" />
+    <div class="bg"></div>
   </div>
 </section>

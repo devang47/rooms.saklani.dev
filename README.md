@@ -23,11 +23,10 @@ and files
 
 ## Tools / Libraries used:
 
-- [Sveltekit](https://kit.svelte.dev/)
-- [Tailwind](https://tailwindcss.com/)
-- [Firebase & Firestore](https://firebase.google.com/)
-- [Gsap](https://greensock.com/)
-- [Cloudflare Pages](https://pages.cloudflare.com/) for Frontend (static build)
-- [Firebase Functions](https://firebase.google.com/) for scheduled room cleanup
-- [WebRTC](https://webrtc.org/)
-- [Peer.js](https://github.com/peers/peerjs)
+- [SvelteKit 3](https://svelte.dev/docs/kit) + [Svelte 5](https://svelte.dev/) (static build)
+- [Tailwind CSS 4](https://tailwindcss.com/)
+- [Firebase](https://firebase.google.com/) (Firestore, Storage, anonymous Auth, scheduled Functions)
+- [Cloudflare Pages](https://pages.cloudflare.com/) for hosting
+- [WebRTC](https://webrtc.org/) via [PeerJS](https://github.com/peers/peerjs)
+- Web Crypto (AES-GCM + PBKDF2) for end-to-end encryption, no crypto library
+- [Playwright](https://playwright.dev/) end-to-end tests against the Firebase emulators

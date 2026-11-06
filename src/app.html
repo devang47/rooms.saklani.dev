@@ -5,6 +5,22 @@
     <link rel="icon" href="%sveltekit.assets%/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#38404A" />
+
+    <link
+      rel="preload"
+      href="%sveltekit.assets%/fonts/RegulatorNovaBold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://res.cloudinary.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400..800&display=swap"
+    />
 
     <meta
       name="image"
@@ -32,6 +48,6 @@
     %sveltekit.head%
   </head>
   <body>
-    <div class="">%sveltekit.body%</div>
+    <div style="display: contents">%sveltekit.body%</div>
   </body>
 </html>

@@ -1,5 +1,5 @@
 .arrow-button {
-  @apply relative mx-auto h-[40px] rounded-[10px] bg-[#F2F2F2] px-5 py-2 text-[14px] font-extrabold text-dark transition-all duration-[0.3s] ease-cubic-ease md:text-[16px];
+  @apply relative mx-auto h-[40px] rounded-[10px] bg-[#F2F2F2] px-5 py-2 text-[14px] font-extrabold text-dark transition-all duration-300 ease-cubic-ease md:text-[16px];
 
   box-shadow:
     0px 0.7px 1px rgba(0, 0, 0, 0.014),
@@ -24,7 +24,7 @@
   }
 
   span {
-    @apply absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-2 whitespace-nowrap opacity-100 duration-150 ease-linear;
+    @apply absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center gap-2 whitespace-nowrap opacity-100 duration-150 ease-linear;
   }
 
   .btn-remove-text {

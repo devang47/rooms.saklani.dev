@@ -1,21 +1,15 @@
+import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
-import type { UserConfig } from "vite";
-import path from "path";
+import tailwindcss from "@tailwindcss/vite";
+import adapter from "@sveltejs/adapter-static";
 
-const config: UserConfig = {
-  plugins: [sveltekit()],
-  resolve: {
-    alias: {
-      $stores: path.resolve("./src/stores"),
-      $styles: path.resolve("./src/styles"),
-      $utils: path.resolve("./src/utils"),
-      $helpers: path.resolve("./src/helpers"),
-      $components: path.resolve("./src/lib/components"),
-      $pages: path.resolve("./src/lib/pages"),
-      $sections: path.resolve("./src/lib/sections"),
-      $icons: path.resolve("./src/lib/icons"),
-    },
-  },
-};
-
-export default config;
+export default defineConfig({
+  plugins: [
+    tailwindcss(),
+    sveltekit({
+      // Static build for Cloudflare Pages. `404.html` is the SPA shell: real 404s for unknown
+      // URLs, and static/_redirects rewrites /room/[id] to it with status 200.
+      adapter: adapter({ fallback: "404.html" }),
+    }),
+  ],
+});

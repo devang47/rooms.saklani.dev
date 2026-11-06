@@ -1,27 +1,33 @@
 <script lang="ts">
-import { addNotification } from "$utils/notifications";
-import { scale } from "svelte/transition";
-import CopyIcon from "$lib/icons/CopyIcon.svelte";
-import { connectionState } from "$stores";
+  import { addNotification } from "#lib/utils/notifications.ts";
+  import { scale } from "svelte/transition";
+  import CopyIcon from "#lib/icons/CopyIcon.svelte";
+  import { connectionState } from "#lib/stores/index.ts";
 
-export let messageData: Message;
-export let showMetadata = false;
+  interface Props {
+    messageData: Message;
+    showMetadata?: boolean;
+  }
 
-// Room messages carry `mine`; P2P messages are matched against our peer ID.
-$: sameDevice = messageData.mine ?? messageData.deviceId === $connectionState.id;
-$: message = messageData.data;
+  let { messageData, showMetadata = false }: Props = $props();
 
-const formatSize = (bytes: number) =>
-  bytes < 1024 * 1024
-    ? `${Math.max(1, Math.round(bytes / 1024))} KB`
-    : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  // Room messages carry `mine`; P2P messages are matched against our peer ID.
+  let sameDevice = $derived(
+    messageData.mine ?? messageData.deviceId === $connectionState.id,
+  );
+  let message = $derived(messageData.data);
 
-let done = false;
-const copyText = () => {
-  navigator.clipboard.writeText(message);
-  done = true;
-  addNotification("Copied to clipboard!", false);
-};
+  const formatSize = (bytes: number) =>
+    bytes < 1024 * 1024
+      ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+      : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+
+  let done = $state(false);
+  const copyText = () => {
+    navigator.clipboard.writeText(message);
+    done = true;
+    addNotification("Copied to clipboard!", false);
+  };
 </script>
 
 <div
@@ -32,11 +38,13 @@ const copyText = () => {
 >
   {#if messageData.file}
     <a
-      class="w-full break-all font-medium underline"
+      class="w-full font-medium break-all underline"
       href={messageData.file.url}
       download={messageData.file.name}
       >📎 {messageData.file.name}
-      <span class="text-xs opacity-60">({formatSize(messageData.file.size)})</span></a
+      <span class="text-xs opacity-60"
+        >({formatSize(messageData.file.size)})</span
+      ></a
     >
   {:else}
     <p class="w-full font-medium">{message}</p>
@@ -60,8 +68,8 @@ const copyText = () => {
 
   <button
     aria-label="copy text"
-    class:done={done}
-    on:click={copyText}
+    class:done
+    onclick={copyText}
     title="copy text"
     class="copy-btn"
   >
