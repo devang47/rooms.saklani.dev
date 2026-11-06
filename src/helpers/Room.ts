@@ -1,11 +1,10 @@
-import { analytics, app, ensureAuth } from "../utils/config";
+import { db, storage, ensureAuth, track } from "../utils/config";
 import {
   doc,
   addDoc,
   setDoc,
   getDoc,
   getDocs,
-  getFirestore,
   collection,
   query,
   orderBy,
@@ -14,16 +13,12 @@ import {
   serverTimestamp,
   type Timestamp,
 } from "firebase/firestore";
-import { logEvent } from "firebase/analytics";
-import { getStorage, listAll, ref, deleteObject } from "firebase/storage";
+import { listAll, ref, deleteObject } from "firebase/storage";
 import { roomMessages } from "$stores";
-import { addNotification } from "$utils/notifications";
 import { decrypt, encrypt, randomString, roomKeys } from "./crypt";
 
-const db = getFirestore(app);
-const storage = getStorage(app);
-
 export const MAX_MESSAGE_LENGTH = 10_000;
+export const ROOM_TTL_MS = 15 * 60 * 1000; // keep in sync with the rules and cleanup function
 
 /** Random per-browser ID, only used to right-align your own messages. */
 const getDeviceId = () => {
@@ -39,7 +34,7 @@ export const createRoom = async () => {
 
   // Rules only allow `create`, so a (very unlikely) code collision fails instead of hijacking a room.
   await setDoc(doc(db, "rooms", id), { createdAt: serverTimestamp() });
-  logEvent(analytics, "room_created");
+  track("room_created");
 
   return code;
 };
@@ -59,20 +54,32 @@ export const addMessage = async ({
     timestamp: Date.now(),
     device: getDeviceId(),
   });
-  logEvent(analytics, "message_pushed");
+  track("message_pushed");
 };
 
-/** Subscribes to decrypted room messages. Returns the unsubscribe function. */
+/**
+ * Subscribes to decrypted room messages. `onClosed` fires when the room is deleted or the
+ * rules start denying reads. Returns the unsubscribe function.
+ */
 export const getRoomMessages = async (
   roomId: string,
   scrollToBottom: () => void,
+  onClosed: () => void,
 ) => {
   await ensureAuth();
   const { id, key } = await roomKeys(roomId);
   const me = getDeviceId();
   let latest = 0;
 
-  return onSnapshot(
+  // Firestore checks rules when a listener starts, so deleting the room doesn't cut off the
+  // messages listener. Watch the room doc itself to notice deletion.
+  const unsubRoom = onSnapshot(
+    doc(db, "rooms", id),
+    (snap) => !snap.exists() && onClosed(),
+    onClosed,
+  );
+
+  const unsubMessages = onSnapshot(
     query(collection(db, "rooms", id, "data"), orderBy("timestamp")),
     async (snapshot) => {
       const run = ++latest;
@@ -97,15 +104,20 @@ export const getRoomMessages = async (
       roomMessages.set(messages.filter(Boolean));
       setTimeout(scrollToBottom, 100);
     },
-    () => addNotification("This room has expired or was deleted", true),
+    onClosed,
   );
+
+  return () => {
+    unsubRoom();
+    unsubMessages();
+  };
 };
 
 /** Resolves `{ timestamp }` (creation time in ms) for a live room, or `false`. */
 export const checkIfRoomExists = async (roomId: string) => {
   await ensureAuth();
   const { id } = await roomKeys(roomId);
-  logEvent(analytics, "check_for_room_existance");
+  track("check_for_room_existance");
 
   try {
     const snap = await getDoc(doc(db, "rooms", id));
@@ -130,5 +142,5 @@ export const deleteRoom = async (roomId: string) => {
   await Promise.all(messages.docs.map((d) => deleteDoc(d.ref)));
 
   await deleteDoc(doc(db, "rooms", id));
-  logEvent(analytics, "room_deleted");
+  track("room_deleted");
 };

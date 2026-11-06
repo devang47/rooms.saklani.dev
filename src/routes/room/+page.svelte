@@ -17,10 +17,20 @@ let inputVal = "";
 let formLoading = "false";
 let roomExists = true;
 const joinRoom = async () => {
-  if (!inputVal || inputVal.length < 6) return;
+  const code = inputVal.trim().toUpperCase();
+  if (!/^[A-Z0-9]{6}$/.test(code)) {
+    addNotification("Room codes are 6 letters or digits", true);
+    return;
+  }
   formLoading = "true";
 
-  $roomData = await checkIfRoomExists(inputVal);
+  try {
+    $roomData = await checkIfRoomExists(code);
+  } catch {
+    formLoading = "false";
+    addNotification("Couldn't reach the server, please try again", true);
+    return;
+  }
   if (!$roomData) {
     formLoading = "false";
     roomExists = false;
@@ -45,7 +55,7 @@ const joinRoom = async () => {
   });
 
   setTimeout(() => {
-    goto("/room/" + inputVal);
+    goto("/room/" + code);
   }, 800);
 };
 
@@ -112,8 +122,10 @@ const handleGotoCreatePage = () => {
             placeholder="xxxxxx"
             maxlength="6"
             type="text"
-            name=""
-            id=""
+            aria-label="Room code"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
           />
           <span class="curved-arrow-line">
             <CurvedArrowLine />

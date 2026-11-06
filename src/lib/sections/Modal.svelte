@@ -5,6 +5,8 @@
   export let onClose: () => void;
 </script>
 
+<svelte:window on:keydown={(e) => e.key === "Escape" && onClose()} />
+
 <section transition:fade={{ duration: 200 }}>
   <div
     transition:scale={{ start: 0.9, opacity: 0, duration: 200 }}

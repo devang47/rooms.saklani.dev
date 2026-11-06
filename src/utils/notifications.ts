@@ -1,15 +1,17 @@
 import { notifications } from "$stores";
-import { get } from "svelte/store";
 
-export let addNotification = (
+let nextId = 0;
+
+/** Shows a toast. Errors stay longer by default so they can be read. */
+export const addNotification = (
   msg: string,
-  error: boolean = false,
+  error = false,
   timeout?: number,
 ) => {
-  notifications.set([...get(notifications), { data: msg, error }]);
-
-  setTimeout(() => {
-    get(notifications).shift();
-    notifications.set(get(notifications));
-  }, timeout ?? 2000);
+  const id = ++nextId;
+  notifications.update((list) => [...list, { id, data: msg, error }]);
+  setTimeout(
+    () => notifications.update((list) => list.filter((n) => n.id !== id)),
+    timeout ?? (error ? 4000 : 2000),
+  );
 };

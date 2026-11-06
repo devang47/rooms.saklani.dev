@@ -1,325 +1,394 @@
-import Peer, {
-  type DataConnection,
-  type MediaConnection,
-  PeerErrorType,
-  PeerError,
-} from "peerjs";
-import { addNotification } from "../../utils/notifications";
-import { generateRandomName } from "$utils";
+import Peer, { type DataConnection, type MediaConnection } from "peerjs";
 import { get } from "svelte/store";
 import {
   connectionState,
-  currentUserVideoRef,
+  initialState,
   relayMessages,
+  currentUserVideoRef,
   remoteUserVideoRef,
   videoCallDialogOpen,
 } from "$stores";
+import { addNotification } from "$utils/notifications";
+import { askConfirm } from "$utils/confirm";
+import { generateRandomName } from "$utils";
 
-let activeConnectionsMap: Map<string, DataConnection> = new Map<
-  string,
-  DataConnection
->();
+export const MAX_P2P_FILE_SIZE = 100 * 1024 * 1024; // whole file is held in memory on both ends
+const CONNECT_TIMEOUT_MS = 60_000; // the other side has to click "Accept"
 
-export enum DataType {
-  FILE = "FILE",
-  MESSAGE = "MESSAGE",
-  SYSTEM = "SYSTEM",
-}
+const MEDIA: MediaStreamConstraints = {
+  video: {
+    width: { ideal: 340 },
+    height: { ideal: 340 },
+    frameRate: { ideal: 24 },
+    aspectRatio: 1,
+  },
+  audio: {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  },
+};
 
-export interface Data {
-  dataType: DataType;
-  timestamp: string;
-  deviceId: string;
-  message?: string;
-  file?: Blob;
-  fileName?: string;
-  fileType?: string;
-}
+/** Wire protocol between two tabs of this app. */
+type Packet =
+  | { type: "accept" }
+  | { type: "decline" }
+  | { type: "message"; text: string; timestamp: number }
+  | {
+      type: "file";
+      file: ArrayBuffer;
+      name: string;
+      mime: string;
+      timestamp: number;
+    }
+  | { type: "call-declined" }
+  | { type: "call-ended" };
 
 let peer: Peer | undefined;
+const connections = new Map<string, DataConnection>();
 let call: MediaConnection | undefined;
-let mediaStream: MediaStream | undefined;
+let localStream: MediaStream | undefined;
+const objectUrls: string[] = [];
 
-export const PeerConnection = {
-  getPeer: () => peer,
-  startPeerSession: () =>
-    new Promise<string>((resolve, reject) => {
-      try {
-        const id = generateRandomName();
-        peer = new Peer(id, {
-          host: import.meta.env.VITE_PEERJS_HOST,
-          port: import.meta.env.VITE_PEERJS_PORT,
-          secure: true,
-        });
+const myId = () => get(connectionState).id ?? "";
 
-        peer.on("open", (id) => {
-          console.log("My ID: " + id);
-          resolve(id);
-        });
+const pushMessage = (peerId: string, msg: RelayMessage) =>
+  relayMessages.update((all) =>
+    all.set(peerId, [...(all.get(peerId) ?? []), msg]),
+  );
 
-        peer.on("call", async (call) => {
-          // Only peers you already accepted can ring you.
-          if (!activeConnectionsMap.has(call.peer)) {
-            call.close();
-            return;
-          }
-          if (
-            window.confirm(
-              "Do you want to accept video call from " + call.peer + "?",
-            )
-          ) {
-            try {
-              const getUserMedia = navigator.mediaDevices.getUserMedia;
+const fileUrl = (blob: Blob) => {
+  const url = URL.createObjectURL(blob);
+  objectUrls.push(url);
+  return url;
+};
 
-              mediaStream = await getUserMedia({
-                video: {
-                  width: { ideal: 340 },
-                  height: { ideal: 340 },
-                  frameRate: { ideal: 24 },
-                  aspectRatio: 1,
-                },
-                audio: {
-                  echoCancellation: true,
-                  noiseSuppression: true,
-                  autoGainControl: true,
-                },
-              });
+const send = (peerId: string, packet: Packet) => {
+  const conn = connections.get(peerId);
+  if (!conn?.open) throw new Error(`Not connected to ${peerId}`);
+  conn.send(packet);
+};
 
-              get(currentUserVideoRef).srcObject = mediaStream;
-              call.answer(mediaStream);
+const trySend = (peerId: string, packet: Packet) => {
+  try {
+    send(peerId, packet);
+  } catch {
+    // peer already gone: nothing to tell it
+  }
+};
 
-              call.on("stream", function (remoteStream) {
-                get(remoteUserVideoRef).srcObject = remoteStream;
-                videoCallDialogOpen.set(true);
-              });
+// ---------------------------------------------------------------- session
 
-              call.on("close", () => {
-                addNotification("Call closed", false);
-                closeCall();
-              });
-            } catch (error) {
-              addNotification("Error when trying to call peer", true);
-            }
-          } else {
-            call.close();
-            sendSystemMessage("Call declined");
-            addNotification("Call declined");
-          }
-        });
+export const startPeer = async () => {
+  if (peer) return;
+  connectionState.update((s) => ({ ...s, loading: true }));
+  const slowStart = setTimeout(
+    () =>
+      addNotification(
+        "The server is taking some time to start. Please wait...",
+        false,
+        4000,
+      ),
+    5000,
+  );
 
-        peer.on("error", (err) => {
-          console.log(err);
-          addNotification(err.message, true);
-        });
-      } catch (err) {
-        console.log(err);
-        reject(err);
-      }
-    }),
-  closePeerSession: () =>
-    new Promise<void>((resolve, reject) => {
-      try {
-        if (peer) {
-          peer.destroy();
-          peer = undefined;
-        }
-        resolve();
-      } catch (err) {
-        console.log(err);
-        reject(err);
-      }
-    }),
-  connectPeer: (id: string) =>
-    new Promise<void>((resolve, reject) => {
-      if (!peer) {
-        reject(new Error("Peer hasn't started yet"));
-        return;
-      }
-      if (activeConnectionsMap.has(id)) {
-        reject(new Error("Connection existed"));
-        return;
-      }
-      try {
-        let conn = peer.connect(id, { reliable: true });
-        if (!conn) {
-          reject(new Error("Connection can't be established"));
-        } else {
-          // No answer in time (declined, offline, or NAT failure): give up.
-          const timeout = setTimeout(() => {
-            peer?.removeListener("error", handlePeerError);
-            conn.close();
-            reject(new Error("No response from " + id));
-          }, 30_000);
-
-          conn
-            .on("open", function () {
-              clearTimeout(timeout);
-              activeConnectionsMap.set(id, conn);
-              peer?.removeListener("error", handlePeerError);
-              resolve();
-            })
-            .on("error", function (err) {
-              clearTimeout(timeout);
-              peer?.removeListener("error", handlePeerError);
-              reject(err);
-            });
-
-          // When the connection fails due to expiry, the error gets emmitted
-          // to the peer instead of to the connection.
-          // We need to handle this here to be able to fulfill the Promise.
-          const handlePeerError = (err: PeerError<`${PeerErrorType}`>) => {
-            if (err.type === "peer-unavailable") {
-              const messageSplit = err.message.split(" ");
-              const peerId = messageSplit[messageSplit.length - 1];
-              if (id === peerId) {
-                clearTimeout(timeout);
-                peer?.removeListener("error", handlePeerError);
-                reject(err);
-              }
-            }
-          };
-          peer.on("error", handlePeerError);
-        }
-      } catch (err) {
-        reject(err);
-      }
-    }),
-  onIncomingConnection: (callback: (conn: DataConnection) => void) => {
-    peer?.on("connection", function (conn) {
-      // Knowing someone's ID is not enough to join: they must accept.
-      if (!window.confirm("Accept connection from " + conn.peer + "?")) {
-        conn.close();
-        return;
-      }
-      activeConnectionsMap.set(conn.peer, conn);
-      callback(conn);
+  try {
+    const p = new Peer(generateRandomName(), {
+      // Falls back to the public PeerJS cloud server when unset (handy for local dev).
+      host: import.meta.env.VITE_PEERJS_HOST || undefined,
+      port: Number(import.meta.env.VITE_PEERJS_PORT) || 443,
+      secure: import.meta.env.VITE_PEERJS_SECURE !== "false", // local peer server is plain http
     });
-  },
-  onConnectionDisconnected: (id: string, callback: () => void) => {
-    if (!peer) {
-      throw new Error("Peer hasn't started yet");
-    }
-    if (!activeConnectionsMap.has(id)) {
-      throw new Error("Connection didn't exist");
-    }
-    let conn = activeConnectionsMap.get(id);
-    if (conn) {
-      conn.on("close", function () {
-        console.log("Connection closed: " + id);
-        activeConnectionsMap.delete(id);
-        callback();
-      });
-    }
-  },
-  sendConnection: (id: string, data: Data): Promise<void> =>
-    new Promise((resolve, reject) => {
-      if (!activeConnectionsMap.has(id)) {
-        reject(new Error("Connection didn't exist"));
-      }
-      try {
-        let conn = activeConnectionsMap.get(id);
-        if (conn) {
-          conn.send(data);
-        }
-      } catch (err) {
-        reject(err);
-      }
-      resolve();
-    }),
-  onConnectionReceiveData: (id: string, callback: (f: Data) => void) => {
-    if (!peer) {
-      throw new Error("Peer hasn't started yet");
-    }
-    if (!activeConnectionsMap.has(id)) {
-      throw new Error("Connection didn't exist");
-    }
-    let conn = activeConnectionsMap.get(id);
-    if (conn) {
-      conn.on("data", function (receivedData) {
-        console.log("Receiving data from " + id);
-        let data = receivedData as Data;
-        callback(data);
-      });
-    }
-  },
+    peer = p;
 
-  callPeer: async (remotePeerId: string) => {
-    if (!peer) {
-      throw new Error("Peer hasn't started yet");
-    }
+    const id = await new Promise<string>((resolve, reject) => {
+      p.once("open", resolve);
+      p.once("error", reject); // e.g. server down or ID taken, before we're online
+    });
 
-    const getUserMedia = navigator.mediaDevices.getUserMedia;
-    try {
-      mediaStream = await getUserMedia({
-        video: {
-          width: { ideal: 340 },
-          height: { ideal: 340 },
-          frameRate: { ideal: 24 },
-          aspectRatio: 1,
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+    p.on("connection", handleIncomingConnection);
+    p.on("call", handleIncomingCall);
+    p.on("disconnected", () => {
+      // Signaling socket dropped (sleep, network change). Open chats keep working; reconnect for new ones.
+      if (peer === p && !p.destroyed) p.reconnect();
+    });
+    p.on("error", (err) => {
+      // peer-unavailable is reported by connectPeer itself.
+      if (err.type !== "peer-unavailable") addNotification(err.message, true);
+    });
 
-      get(currentUserVideoRef).srcObject = mediaStream;
-      call = peer.call(remotePeerId, mediaStream);
-
-      sendSystemMessage("Call started by " + get(connectionState).id);
-
-      call.on("stream", (remoteStream: any) => {
-        get(remoteUserVideoRef).srcObject = remoteStream;
-      });
-
-      call.on("close", () => {
-        addNotification("Call closed", false);
-        closeCall();
-      });
-    } catch (err) {
-      addNotification("Error when trying to call peer", true);
-    }
-  },
+    connectionState.update((s) => ({ ...s, id, started: true }));
+  } catch (err: any) {
+    peer?.destroy();
+    peer = undefined;
+    addNotification(err?.message || "Couldn't start the server", true);
+  } finally {
+    clearTimeout(slowStart);
+    connectionState.update((s) => ({ ...s, loading: false }));
+  }
 };
 
-export const closeCall = () => {
-  call?.close();
-  call = undefined;
+export const stopPeer = () => {
+  endCall();
+  connections.clear(); // before destroy(), so their close handlers stay quiet
+  peer?.destroy();
+  peer = undefined;
+  objectUrls.splice(0).forEach((url) => URL.revokeObjectURL(url));
+  relayMessages.set(new Map());
+  connectionState.set(initialState);
+};
 
-  videoCallDialogOpen.set(false);
-  mediaStream?.getTracks().forEach((track) => {
-    track.stop();
+// ---------------------------------------------------------------- connections
+
+/** Wires up an accepted connection and adds it to the list. */
+const register = (conn: DataConnection) => {
+  const peerId = conn.peer;
+  // A reconnect from the same peer replaces the old connection (set first so its close is ignored).
+  const previous = connections.get(peerId);
+  connections.set(peerId, conn);
+  previous?.close();
+
+  conn.on("data", (data) => handlePacket(peerId, data as Packet));
+  conn.on("close", () => {
+    if (connections.get(peerId) !== conn) return; // replaced, or we stopped
+    connections.delete(peerId);
+    if (call?.peer === peerId) endCall(false);
+    addNotification("Connection closed: " + peerId);
+    connectionState.update((s) => {
+      const list = s.list.filter((id) => id !== peerId);
+      return {
+        ...s,
+        list,
+        selectedId: s.selectedId === peerId ? list[0] : s.selectedId,
+      };
+    });
   });
-  mediaStream = undefined;
 
-  get(currentUserVideoRef).srcObject = null;
-  get(remoteUserVideoRef).srcObject = null;
+  connectionState.update((s) => ({
+    ...s,
+    list: s.list.includes(peerId) ? s.list : [...s.list, peerId],
+    selectedId: s.selectedId ?? peerId,
+  }));
 };
 
-export const sendSystemMessage = async (message: string) => {
-  const selectedId = get(connectionState).selectedId;
-  if (!selectedId) return;
+const handleIncomingConnection = async (conn: DataConnection) => {
+  const accepted = await askConfirm(
+    `${conn.peer} wants to connect`,
+    "Accept",
+    "Decline",
+  );
+  if (!peer) return conn.close();
 
-  const data = {
-    dataType: DataType.SYSTEM,
-    message,
-    deviceId: get(connectionState).id ?? "",
-    timestamp: new Date().toString(),
+  // Wait for the channel so the answer actually reaches the other side.
+  const reply = () => {
+    if (!accepted) {
+      conn.send({ type: "decline" } satisfies Packet);
+      setTimeout(() => conn.close(), 500);
+      return;
+    }
+    register(conn);
+    conn.send({ type: "accept" } satisfies Packet);
+    addNotification("Connected to " + conn.peer);
   };
+  conn.open ? reply() : conn.once("open", reply);
+};
 
-  await PeerConnection.sendConnection(selectedId, data);
-  relayMessages.update((msgs) => {
-    msgs.set(selectedId, [
-      ...(msgs.get(selectedId) ?? []),
-      {
-        data: data.message,
-        device: data.deviceId,
-        deviceId: data.deviceId,
-        timestamp: data.timestamp,
-      },
-    ]);
+/** Connects to `rawId` and resolves once they accept. */
+export const connectPeer = (rawId: string) =>
+  new Promise<void>((resolve, reject) => {
+    const id = rawId.trim().toLowerCase();
+    if (!peer) return reject(new Error("Start the server first"));
+    if (!id) return reject(new Error("Please enter a valid ID"));
+    if (id === myId()) return reject(new Error("Cannot connect to self"));
+    if (connections.has(id)) {
+      selectConnection(id);
+      return resolve();
+    }
 
-    return msgs;
+    const p = peer;
+    const conn = p.connect(id, { reliable: true });
+    let settled = false;
+    const finish = (err?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      p.off("error", onPeerError);
+      if (err) {
+        conn.close();
+        reject(err);
+      } else resolve();
+    };
+
+    const timer = setTimeout(
+      () => finish(new Error(`No response from ${id}`)),
+      CONNECT_TIMEOUT_MS,
+    );
+    // An unknown ID is reported on the peer, not the connection.
+    const onPeerError = (err: { type: string; message: string }) => {
+      if (err.type === "peer-unavailable" && err.message.endsWith(id))
+        finish(new Error(`${id} is not online`));
+    };
+    p.on("error", onPeerError);
+
+    conn.on("data", (data) => {
+      if (settled) return;
+      const packet = data as Packet;
+      if (packet?.type === "accept") {
+        register(conn);
+        finish();
+      } else if (packet?.type === "decline") {
+        finish(new Error(`${id} declined the connection`));
+      }
+    });
+    conn.on("close", () => finish(new Error(`Couldn't connect to ${id}`)));
+    conn.on("error", (err) => finish(err));
   });
+
+export const selectConnection = (id: string) =>
+  connectionState.update((s) => ({ ...s, selectedId: id }));
+
+// ---------------------------------------------------------------- messages & files
+
+const handlePacket = (peerId: string, packet: Packet) => {
+  switch (packet?.type) {
+    case "message":
+      pushMessage(peerId, {
+        data: packet.text,
+        timestamp: packet.timestamp,
+        device: peerId,
+        deviceId: peerId,
+      });
+      break;
+    case "file": {
+      const blob = new Blob([packet.file], { type: packet.mime });
+      pushMessage(peerId, {
+        data: packet.name,
+        file: { name: packet.name, size: blob.size, url: fileUrl(blob) },
+        timestamp: packet.timestamp,
+        device: peerId,
+        deviceId: peerId,
+      });
+      addNotification(`${peerId} sent you ${packet.name}`);
+      break;
+    }
+    case "call-declined":
+    case "call-ended":
+      if (call?.peer === peerId) {
+        endCall(false);
+        addNotification(
+          packet.type === "call-declined"
+            ? `${peerId} declined the call`
+            : "Call ended",
+        );
+      }
+      break;
+  }
+};
+
+export const sendMessage = (peerId: string, text: string) => {
+  const timestamp = Date.now();
+  send(peerId, { type: "message", text, timestamp });
+  pushMessage(peerId, {
+    data: text,
+    timestamp,
+    device: myId(),
+    deviceId: myId(),
+  });
+};
+
+export const sendFile = async (peerId: string, file: File) => {
+  if (file.size > MAX_P2P_FILE_SIZE)
+    throw new Error("Files over 100 MB can't be sent");
+  const timestamp = Date.now();
+  send(peerId, {
+    type: "file",
+    file: await file.arrayBuffer(),
+    name: file.name,
+    mime: file.type,
+    timestamp,
+  });
+  pushMessage(peerId, {
+    data: file.name,
+    file: { name: file.name, size: file.size, url: fileUrl(file) },
+    timestamp,
+    device: myId(),
+    deviceId: myId(),
+  });
+};
+
+// ---------------------------------------------------------------- video calls
+
+const getMedia = () => navigator.mediaDevices.getUserMedia(MEDIA); // must be called as a method
+
+const showCall = () => {
+  const local = get(currentUserVideoRef);
+  if (local) local.srcObject = localStream ?? null;
+  videoCallDialogOpen.set(true);
+};
+
+const attachCall = (c: MediaConnection) => {
+  call = c;
+  c.on("stream", (remote) => {
+    const video = get(remoteUserVideoRef);
+    if (video) video.srcObject = remote;
+  });
+  c.on("close", () => {
+    if (call === c) endCall(false);
+  });
+};
+
+export const startCall = async (peerId: string) => {
+  if (!peer || call) return;
+  try {
+    localStream = await getMedia();
+  } catch {
+    addNotification("Allow camera and microphone access to make a call", true);
+    return;
+  }
+  attachCall(peer.call(peerId, localStream));
+  showCall();
+};
+
+const handleIncomingCall = async (c: MediaConnection) => {
+  // Only peers you already accepted can ring you, one call at a time.
+  if (!connections.has(c.peer) || call) {
+    trySend(c.peer, { type: "call-declined" });
+    return c.close();
+  }
+
+  const accepted = await askConfirm(
+    `${c.peer} is calling you`,
+    "Accept",
+    "Decline",
+  );
+  if (accepted) {
+    try {
+      localStream = await getMedia();
+    } catch {
+      addNotification("Allow camera and microphone access to answer", true);
+    }
+  }
+  if (!accepted || !localStream || !peer) {
+    trySend(c.peer, { type: "call-declined" });
+    return c.close();
+  }
+
+  attachCall(c);
+  c.answer(localStream);
+  showCall();
+};
+
+/** Hangs up and releases the camera. `notifyPeer` is false when the other side ended it. */
+export const endCall = (notifyPeer = true) => {
+  const c = call;
+  call = undefined; // first, so the close event below doesn't re-enter
+  if (c && notifyPeer) trySend(c.peer, { type: "call-ended" });
+  c?.close();
+
+  localStream?.getTracks().forEach((track) => track.stop());
+  localStream = undefined;
+  videoCallDialogOpen.set(false);
+  for (const video of [get(currentUserVideoRef), get(remoteUserVideoRef)]) {
+    if (video) video.srcObject = null;
+  }
 };

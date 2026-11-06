@@ -1,6 +1,7 @@
 <script lang="ts">
   import Notifications from "$lib/sections/Notifications.svelte";
   import LoadingScreen from "$lib/sections/LoadingScreen.svelte";
+  import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
   import { loading } from "$stores";
   import SvelteSeo from "svelte-seo";
   import "$styles/global.scss";
@@ -11,6 +12,7 @@
 {/if}
 
 <Notifications />
+<ConfirmDialog />
 
 <slot />
 

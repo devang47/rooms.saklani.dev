@@ -1,30 +1,27 @@
-import type Peer from "peerjs";
 import { writable } from "svelte/store";
 
-export const roomId = writable<string>();
 export const roomMessages = writable<any>([]);
 export let loading = writable<boolean>(true);
 export let loadingUpload = writable<boolean>(false);
 export let notifications = writable<CustomNotification[]>([]);
 export let roomData = writable<any>(false);
 
-export let peerInstance = writable<Peer>();
-
-export const initialState = {
-  id: undefined,
-  loading: false,
-  list: [],
-  selectedId: undefined,
-  started: false,
-};
-
-export const connectionState = writable<{
+export interface ConnectionState {
   readonly id?: string;
   readonly started: boolean;
   readonly loading: boolean;
+  /** Accepted peers. */
   readonly list: string[];
   readonly selectedId?: string;
-}>(initialState);
+}
+
+export const initialState: ConnectionState = {
+  loading: false,
+  list: [],
+  started: false,
+};
+
+export const connectionState = writable<ConnectionState>(initialState);
 
 export const currentUserVideoRef = writable<HTMLVideoElement>();
 export const remoteUserVideoRef = writable<HTMLVideoElement>();

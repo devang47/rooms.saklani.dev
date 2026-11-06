@@ -1,5 +1,5 @@
 <script lang="ts">
-import { startPeer } from "$helpers/peer/peerActions";
+import { startPeer } from "$helpers/peer";
 import CircleAnimation from "$lib/components/CircleAnimation.svelte";
 import { connectionState } from "$stores";
 </script>

@@ -8,3 +8,5 @@ wrangler.toml
 .wrangler
 yarn-error.log
 *-debug.log
+/test-results
+/playwright-report

@@ -1,22 +1,13 @@
 <script lang="ts">
-import { connectionState, relayMessages } from "$stores";
+import { connectionState } from "$stores";
 import { addNotification } from "$utils/notifications";
-import { PeerConnection } from "$helpers/peer";
-import { stopPeerSession } from "$helpers/peer/actions";
-import { startPeer } from "$helpers/peer/peerActions";
+import { startPeer, stopPeer } from "$helpers/peer";
 
 const copyText = () => {
   if (!$connectionState.id) return;
   navigator.clipboard.writeText($connectionState.id);
 
   addNotification("Copied to clipboard!", false);
-};
-
-const handleStopServer = async () => {
-  await PeerConnection.closePeerSession();
-  relayMessages.set(new Map());
-
-  stopPeerSession();
 };
 </script>
 
@@ -59,7 +50,7 @@ const handleStopServer = async () => {
       aria-label="toggle peerjs server"
       class="relative flex cursor-pointer items-center justify-center gap-1 overflow-hidden rounded bg-[#D9D9D9] px-3 py-1.5 text-[15px] text-sm font-extrabold text-[#38404A] md:px-4 md:py-2"
       disabled={$connectionState.loading}
-      on:click={$connectionState.started ? handleStopServer : startPeer}
+      on:click={$connectionState.started ? stopPeer : startPeer}
     >
       {#if $connectionState.started}
         Stop

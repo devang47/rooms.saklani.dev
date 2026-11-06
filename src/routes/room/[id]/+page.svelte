@@ -14,68 +14,69 @@ import {
   deleteRoom,
   getRoomMessages,
   MAX_MESSAGE_LENGTH,
+  ROOM_TTL_MS,
 } from "$helpers/Room";
 import { uploadFile } from "$helpers/storage";
+import { chatInput as chatInputAction } from "$lib/hooks/chatInput";
 import { onDestroy, onMount } from "svelte";
 
-let roomId: string;
 let scrollToElement: HTMLDivElement;
 let chatInput = "";
-let chatInputBox: HTMLTextAreaElement;
 let uploadFileInput: HTMLInputElement;
 let unsubscribe: (() => void) | undefined;
+let expiryTimer: ReturnType<typeof setTimeout> | undefined;
+let left = false;
 
-onDestroy(() => unsubscribe?.());
+$: roomId = ($page.params.id || "").toUpperCase();
 
-onMount(async () => {
-  roomId = $page.params.id.toUpperCase() as string;
-
-  $roomData = await checkIfRoomExists(roomId);
-  if (!$roomData) {
-    $roomMessages = [];
-    addNotification("Room doesn't exists", true);
-    goto("/");
-  } else {
-    unsubscribe = await getRoomMessages(roomId, scrollToBottom);
-    loading.set(false);
-  }
-
-  chatInputBox.addEventListener("keypress", (e) => {
-    if (innerWidth < 640) return;
-
-    if (e.key === "Enter" && e.shiftKey) {
-      e.preventDefault();
-      chatInput += "\r\n";
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddMsg();
-    } else if (e.key === "/") {
-    }
-  });
-
-  window.addEventListener("keypress", focusOnInput);
-});
-
-const focusOnInput = (e: KeyboardEvent) => {
-  if (innerWidth < 640) return;
-
-  if (e.key === "/") {
-    chatInputBox.focus();
-  }
+const leave = (message?: string) => {
+  if (left) return;
+  left = true;
+  unsubscribe?.();
+  clearTimeout(expiryTimer);
+  $roomMessages = [];
+  if (message) addNotification(message, true);
+  goto("/");
 };
 
-$: roomId = ($page.params.id || "").toUpperCase() as string;
+onDestroy(() => {
+  left = true;
+  unsubscribe?.();
+  clearTimeout(expiryTimer);
+});
+
+onMount(async () => {
+  try {
+    $roomData = await checkIfRoomExists(roomId);
+  } catch {
+    return leave("Couldn't open the room, please check your connection");
+  }
+  if (!$roomData) return leave("Room doesn't exist or has expired");
+
+  const unsub = await getRoomMessages(roomId, scrollToBottom, () =>
+    leave("This room has expired or was deleted"),
+  );
+  if (left) return unsub(); // navigated away while subscribing
+  unsubscribe = unsub;
+
+  expiryTimer = setTimeout(
+    () => leave("This room has expired"),
+    $roomData.timestamp + ROOM_TTL_MS - Date.now(),
+  );
+  loading.set(false);
+});
 
 const handleAddMsg = async () => {
-  chatInput = chatInput.trim();
-  if (!chatInput) return;
+  const msg = chatInput.trim();
+  if (!msg) return;
 
-  let msg = chatInput;
   chatInput = "";
-  await addMessage({ roomId, message: msg });
-  scrollToBottom();
-  if (innerWidth > 640) {
-    chatInputBox.focus();
+  try {
+    await addMessage({ roomId, message: msg });
+    scrollToBottom();
+  } catch {
+    chatInput = msg; // give it back so nothing is lost
+    addNotification("Message not sent, please try again", true);
   }
 };
 
@@ -101,14 +102,14 @@ const handleInputChange = async (e: Event) => {
 
 const handleDeleteRoom = async () => {
   $loading = true;
+  unsubscribe?.(); // our own deletion shouldn't trigger the "room deleted" path
+  unsubscribe = undefined;
   try {
     await deleteRoom(roomId);
+    leave();
   } catch {
-    addNotification("Couldn't delete the room, it will expire on its own", true);
+    leave("Couldn't delete the room, it will expire on its own");
   }
-  unsubscribe?.();
-  $roomMessages = [];
-  goto("/");
 };
 
 const scrollToBottom = () => {
@@ -170,7 +171,7 @@ const scrollToBottom = () => {
           cols="30"
           rows="10"
           maxlength={MAX_MESSAGE_LENGTH}
-          bind:this={chatInputBox}
+          use:chatInputAction={handleAddMsg}
           bind:value={chatInput}
         />
         <div class="buttons flex flex-col gap-2 md:gap-4">

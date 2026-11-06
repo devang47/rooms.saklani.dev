@@ -14,10 +14,12 @@
     "test:rules": "npx -y firebase-tools@13 emulators:exec --project demo-rooms --only firestore,storage \"node --test tests/rules.test.mjs\"",
     "firebase": "npx -y firebase-tools@15",
     "deploy:backend": "npx -y firebase-tools@15 deploy --only firestore:rules,storage,functions",
-    "preview:pages": "vite build && npx -y wrangler@4 pages dev build --port 8788"
+    "preview:pages": "vite build && npx -y wrangler@4 pages dev build --port 8788",
+    "test:e2e": "npx -y firebase-tools@13 emulators:exec --project demo-rooms --only auth,firestore,storage \"playwright test\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^2.0.7",
+    "@playwright/test": "^1.65.0",
     "@sveltejs/adapter-static": "^2.0.3",
     "@sveltejs/kit": "1.15.7",
     "@types/countdown": "^0.0.8",
@@ -45,7 +47,6 @@
     "firebase": "^9.19.1",
     "gsap": "^3.11.5",
     "html-minifier": "^4.0.0",
-    "js-file-download": "^0.4.12",
     "peerjs": "^1.5.4",
     "qrcode": "^1.5.3",
     "sass": "^1.62.0",

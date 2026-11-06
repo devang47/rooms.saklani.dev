@@ -5,6 +5,7 @@
   import { addNotification } from "$utils/notifications";
   import { onDestroy, tick } from "svelte";
   import Modal from "./Modal.svelte";
+  import { ROOM_TTL_MS } from "$helpers/Room";
 
   export let roomId: string;
   export let handleDeleteRoom: () => void;
@@ -15,37 +16,19 @@
     addNotification("Copied to clipboard!", false);
   };
 
-  let timeRemainingBeforeRoomDeletion = "";
-  let interval: NodeJS.Timer;
+  // Recomputed from the clock every second, so it can't drift or go negative.
+  let now = Date.now();
+  const clock = setInterval(() => (now = Date.now()), 1000);
+  onDestroy(() => clearInterval(clock));
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  $: remaining = Math.max(0, ($roomData?.timestamp ?? 0) + ROOM_TTL_MS - now);
+  $: timeRemainingBeforeRoomDeletion = !$roomData?.timestamp
+    ? ""
+    : remaining
+      ? `${pad(Math.floor(remaining / 60000))}:${pad(Math.floor(remaining / 1000) % 60)}`
+      : "Expired";
   let isQrModalOpen = false;
-
-  function startTimer(duration: number) {
-    if (!$roomData.timestamp) return;
-    if (interval) clearInterval(interval);
-
-    let timer = duration,
-      minutes,
-      seconds;
-    interval = setInterval(function () {
-      if (!$roomData.timestamp) return clearInterval(interval);
-
-      minutes = parseInt("" + timer / 60, 10);
-      seconds = parseInt("" + (timer % 60), 10);
-
-      if (minutes === 0 && seconds === 0) {
-        return (timeRemainingBeforeRoomDeletion = "00:00");
-      }
-
-      minutes = minutes < 10 ? "0" + minutes : minutes;
-      seconds = seconds < 10 ? "0" + seconds : seconds;
-
-      timeRemainingBeforeRoomDeletion = minutes + ":" + seconds;
-
-      if (--timer < 0) {
-        timer = duration;
-      }
-    }, 1000);
-  }
 
   let canvasEl: HTMLCanvasElement;
   const createQrCode = async () => {
@@ -55,7 +38,7 @@
 
     QRCode.toCanvas(
       canvasEl,
-      `https://rooms.saklani.dev/room/${roomId ?? ""}`,
+      `${location.origin}/room/${roomId ?? ""}`,
       { width: 300 },
       function (error: any) {
         if (error) console.error(error);
@@ -63,15 +46,6 @@
     );
   };
 
-  let time: number = 0;
-  $: time = 15 * 60000 - (new Date().getTime() - $roomData.timestamp);
-  $: if (time) startTimer(time / 1000);
-
-  $: !$roomData.timestamp ? (timeRemainingBeforeRoomDeletion = "Deleted") : "";
-
-  onDestroy(() => {
-    if (interval) clearInterval(interval);
-  });
 </script>
 
 <header>

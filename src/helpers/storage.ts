@@ -1,10 +1,5 @@
-import {
-  ref,
-  uploadBytesResumable,
-  getDownloadURL,
-  getStorage,
-} from "firebase/storage";
-import { app, ensureAuth } from "../utils/config";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { storage, ensureAuth } from "../utils/config";
 import { randomString, roomKeys } from "./crypt";
 import { gsap } from "gsap";
 
@@ -18,10 +13,7 @@ export const uploadFile = async (roomId: string, file: File) => {
   await ensureAuth();
   const { id } = await roomKeys(roomId);
   // Random prefix: same-named uploads no longer overwrite each other.
-  const storageRef = ref(
-    getStorage(app),
-    `${id}/${randomString(8)}-${file.name}`,
-  );
+  const storageRef = ref(storage, `${id}/${randomString(8)}-${file.name}`);
 
   const uploadTask = uploadBytesResumable(storageRef, file);
   uploadTask.on("state_changed", (snapshot) => {

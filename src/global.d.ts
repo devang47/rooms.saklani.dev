@@ -6,6 +6,8 @@ interface Message {
   deviceId?: string;
   /** Room messages only: sent from this browser. */
   mine?: boolean;
+  /** P2P file messages: a local object URL to download from. */
+  file?: { name: string; size: number; url: string };
 }
 
 interface RelayMessage extends Message {
@@ -13,6 +15,7 @@ interface RelayMessage extends Message {
 }
 
 interface CustomNotification {
+  id: number;
   data: string;
   error: boolean;
 }

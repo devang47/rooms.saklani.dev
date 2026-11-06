@@ -227,9 +227,9 @@ onMount(() => {
             </li>
           </ul>
 
-          <a href="/p2p">
+          <a href="/p2p" tabindex="-1">
             <Button
-              label="create a room"
+              label="Start a P2P server"
               class="relative z-20 mt-5 w-[175px] text-sm md:w-[189px]"
             >
               {#if formLoading === "true"}

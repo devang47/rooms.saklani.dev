@@ -11,6 +11,11 @@ export let showMetadata = false;
 $: sameDevice = messageData.mine ?? messageData.deviceId === $connectionState.id;
 $: message = messageData.data;
 
+const formatSize = (bytes: number) =>
+  bytes < 1024 * 1024
+    ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+    : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+
 let done = false;
 const copyText = () => {
   navigator.clipboard.writeText(message);
@@ -25,7 +30,17 @@ const copyText = () => {
   class:right-aligned={sameDevice}
   class:left-aligned={!sameDevice}
 >
-  <p class="w-full font-medium">{message}</p>
+  {#if messageData.file}
+    <a
+      class="w-full break-all font-medium underline"
+      href={messageData.file.url}
+      download={messageData.file.name}
+      >📎 {messageData.file.name}
+      <span class="text-xs opacity-60">({formatSize(messageData.file.size)})</span></a
+    >
+  {:else}
+    <p class="w-full font-medium">{message}</p>
+  {/if}
 
   {#if showMetadata}
     <div class="mt-2 flex items-center gap-2 text-xs opacity-50">
