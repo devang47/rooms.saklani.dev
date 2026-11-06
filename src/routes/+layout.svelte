@@ -1,24 +1,9 @@
 <script lang="ts">
   import Notifications from "$lib/sections/Notifications.svelte";
   import LoadingScreen from "$lib/sections/LoadingScreen.svelte";
-  import { loading, user } from "$stores";
+  import { loading } from "$stores";
   import SvelteSeo from "svelte-seo";
-  import { onMount } from "svelte";
-  import { signInAnonymously } from "firebase/auth";
   import "$styles/global.scss";
-  import { auth } from "$utils/config";
-  import { addNotification } from "$utils/notifications";
-
-  onMount(() => {
-    signInAnonymously(auth)
-      .then((authUser) => {
-        user.set(authUser.user);
-      })
-      .catch((error) => {
-        const errorMessage = error.message;
-        addNotification(errorMessage, true);
-      });
-  });
 </script>
 
 {#if $loading}

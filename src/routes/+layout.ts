@@ -1,4 +1,2 @@
-import { dev } from "$app/environment";
-import { inject } from "@vercel/analytics";
-
-inject({ mode: dev ? "development" : "production" });
+// Fully static site: every page is prerendered except /room/[id], which is served the SPA fallback.
+export const prerender = true;

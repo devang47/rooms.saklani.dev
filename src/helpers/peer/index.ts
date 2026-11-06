@@ -58,8 +58,15 @@ export const PeerConnection = {
         });
 
         peer.on("call", async (call) => {
+          // Only peers you already accepted can ring you.
+          if (!activeConnectionsMap.has(call.peer)) {
+            call.close();
+            return;
+          }
           if (
-            window.confirm("Do you want to accept video call from " + id + "?")
+            window.confirm(
+              "Do you want to accept video call from " + call.peer + "?",
+            )
           ) {
             try {
               const getUserMedia = navigator.mediaDevices.getUserMedia;
@@ -137,15 +144,22 @@ export const PeerConnection = {
         if (!conn) {
           reject(new Error("Connection can't be established"));
         } else {
+          // No answer in time (declined, offline, or NAT failure): give up.
+          const timeout = setTimeout(() => {
+            peer?.removeListener("error", handlePeerError);
+            conn.close();
+            reject(new Error("No response from " + id));
+          }, 30_000);
+
           conn
             .on("open", function () {
-              console.log("Connect to: " + id);
+              clearTimeout(timeout);
               activeConnectionsMap.set(id, conn);
               peer?.removeListener("error", handlePeerError);
               resolve();
             })
             .on("error", function (err) {
-              console.log(err);
+              clearTimeout(timeout);
               peer?.removeListener("error", handlePeerError);
               reject(err);
             });
@@ -157,7 +171,11 @@ export const PeerConnection = {
             if (err.type === "peer-unavailable") {
               const messageSplit = err.message.split(" ");
               const peerId = messageSplit[messageSplit.length - 1];
-              if (id === peerId) reject(err);
+              if (id === peerId) {
+                clearTimeout(timeout);
+                peer?.removeListener("error", handlePeerError);
+                reject(err);
+              }
             }
           };
           peer.on("error", handlePeerError);
@@ -168,7 +186,11 @@ export const PeerConnection = {
     }),
   onIncomingConnection: (callback: (conn: DataConnection) => void) => {
     peer?.on("connection", function (conn) {
-      console.log("Incoming connection: " + conn.peer);
+      // Knowing someone's ID is not enough to join: they must accept.
+      if (!window.confirm("Accept connection from " + conn.peer + "?")) {
+        conn.close();
+        return;
+      }
       activeConnectionsMap.set(conn.peer, conn);
       callback(conn);
     });

@@ -1,0 +1,2 @@
+# Room pages are client-only: serve the SPA shell (keeps the URL, status 200).
+/room/* /404 200

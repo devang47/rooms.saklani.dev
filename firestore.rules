@@ -1,8 +1,44 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write;
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Rooms live 15 minutes. Expiry is enforced here; the scheduled function only cleans up.
+    function isAlive(room) {
+      return room != null && room.data.createdAt > request.time - duration.value(15, 'm');
+    }
+
+    function room(roomId) {
+      return get(/databases/$(database)/documents/rooms/$(roomId));
+    }
+
+    match /rooms/{roomId} {
+      // Single-doc reads only: no `list`, so rooms can't be enumerated.
+      allow get: if signedIn() && isAlive(resource);
+      // Create only (no update), so an existing room can't be overwritten or extended.
+      allow create: if signedIn()
+        && roomId.matches('^[0-9a-f]{64}$')
+        && request.resource.data.keys().hasOnly(['createdAt'])
+        && request.resource.data.createdAt == request.time;
+      // Knowing the doc ID requires knowing the room code.
+      allow delete: if signedIn();
+
+      match /data/{messageId} {
+        allow list: if signedIn() && isAlive(room(roomId));
+        allow create: if signedIn()
+          && isAlive(room(roomId))
+          && request.resource.data.keys().hasOnly(['iv', 'data', 'timestamp', 'device'])
+          && request.resource.data.iv is string
+          && request.resource.data.iv.size() == 16
+          && request.resource.data.data is string
+          && request.resource.data.data.size() <= 60000
+          && request.resource.data.timestamp is int
+          && request.resource.data.device is string
+          && request.resource.data.device.size() <= 64;
+        allow delete: if signedIn();
+      }
     }
   }
 }

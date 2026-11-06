@@ -10,6 +10,7 @@ import FloatingImages from "$lib/sections/FloatingImages.svelte";
 import { loading } from "$stores";
 import { createRoom } from "$helpers/Room";
 import { onMount } from "svelte";
+import { addNotification } from "$utils/notifications";
 import gsap, { Power3 } from "gsap";
 
 let roomId = "";
@@ -28,7 +29,14 @@ const transitionJoinPageStart = (callback: () => void) => {
 
 const handleCreateRoom = async () => {
   formLoading = "true";
-  roomId = await createRoom();
+  try {
+    roomId = await createRoom();
+  } catch (err) {
+    console.error(err);
+    formLoading = "false";
+    addNotification("Couldn't create a room, please try again", true);
+    return;
+  }
   formLoading = "complete";
 
   transitionJoinPageStart(() => {
@@ -123,7 +131,7 @@ onMount(() => {
 
             <li><span>✅</span> Secure</li>
 
-            <li><span>❌</span> End to end encrypted</li>
+            <li><span>✅</span> Messages encrypted in your browser</li>
           </ul>
 
           <Button

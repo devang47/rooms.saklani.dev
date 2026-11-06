@@ -141,7 +141,7 @@ relayMessages.subscribe((msgs) => {
       <div class="placeholder text-sm">No recent messages</div>
     {:else}
       {#each $relayMessages.get($connectionState.selectedId ?? "") ?? [] as item}
-        <MessageItem showMetadata roomId={item.deviceId} messageData={item} />
+        <MessageItem showMetadata messageData={item} />
       {/each}
     {/if}
   </div>

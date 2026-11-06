@@ -8,21 +8,12 @@ importers:
 
   .:
     dependencies:
-      '@upstash/redis':
-        specifier: ^1.34.4
-        version: 1.34.4
-      '@vercel/analytics':
-        specifier: ^1.2.0
-        version: 1.2.0
       clsx:
         specifier: ^1.2.1
         version: 1.2.1
       countdown:
         specifier: ^2.6.0
         version: 2.6.0
-      crypto-js:
-        specifier: ^4.1.1
-        version: 4.1.1
       firebase:
         specifier: ^9.19.1
         version: 9.19.1
@@ -48,18 +39,18 @@ importers:
         specifier: ^4.7.1
         version: 4.7.1
     devDependencies:
-      '@sveltejs/adapter-auto':
-        specifier: 2.0.0
-        version: 2.0.0(@sveltejs/kit@1.15.7(svelte@3.58.0)(vite@4.2.1(@types/node@18.15.11)(sass@1.62.0)))
+      '@firebase/rules-unit-testing':
+        specifier: ^2.0.7
+        version: 2.0.7(firebase@9.19.1)
+      '@sveltejs/adapter-static':
+        specifier: ^2.0.3
+        version: 2.0.3(@sveltejs/kit@1.15.7(svelte@3.58.0)(vite@4.2.1(@types/node@18.15.11)(sass@1.62.0)))
       '@sveltejs/kit':
         specifier: 1.15.7
         version: 1.15.7(svelte@3.58.0)(vite@4.2.1(@types/node@18.15.11)(sass@1.62.0))
       '@types/countdown':
         specifier: ^0.0.8
         version: 0.0.8
-      '@types/crypto-js':
-        specifier: ^4.1.1
-        version: 4.1.1
       '@types/html-minifier':
         specifier: ^4.0.2
         version: 4.0.2
@@ -399,6 +390,12 @@ packages:
     peerDependencies:
       '@firebase/app': 0.x
 
+  '@firebase/rules-unit-testing@2.0.7':
+    resolution: {integrity: sha512-tioToru3AgRanuHLt650rmP9oeyhyc9yb3i3jtZDFz3MTpztHVFI4q6sYnIneTr9aSllsItCYYCJS5ylPOCsWg==}
+    engines: {node: '>=10.10.0'}
+    peerDependencies:
+      firebase: ^9.0.0
+
   '@firebase/storage-compat@0.3.2':
     resolution: {integrity: sha512-wvsXlLa9DVOMQJckbDNhXKKxRNNewyUhhbXev3t8kSgoCotd1v3MmqhKKz93ePhDnhHnDs7bYHy+Qa8dRY6BXw==}
     peerDependencies:
@@ -505,10 +502,10 @@ packages:
   '@protobufjs/utf8@1.1.0':
     resolution: {integrity: sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==}
 
-  '@sveltejs/adapter-auto@2.0.0':
-    resolution: {integrity: sha512-b+gkHFZgD771kgV3aO4avHFd7y1zhmMYy9i6xOK7m/rwmwaRO8gnF5zBc0Rgca80B2PMU1bKNxyBTHA14OzUAQ==}
+  '@sveltejs/adapter-static@2.0.3':
+    resolution: {integrity: sha512-VUqTfXsxYGugCpMqQv1U0LIdbR3S5nBkMMDmpjGVJyM6Q2jHVMFtdWJCkeHMySc6mZxJ+0eZK3T7IgmUCDrcUQ==}
     peerDependencies:
-      '@sveltejs/kit': ^1.0.0
+      '@sveltejs/kit': ^1.5.0
 
   '@sveltejs/kit@1.15.7':
     resolution: {integrity: sha512-dgdKExsMJ16X3q8tEcuDlv+QIWAlJcf7IqCU2HWV13nmtTzwSA2n4VtEx9Gy5OGhH0SUAGNIupmlf0TdFSMXbw==}
@@ -534,9 +531,6 @@ packages:
   '@types/countdown@0.0.8':
     resolution: {integrity: sha512-kpWa+wlrYcvgymkaOIF3i40MnSMRNdv91piNVmJ22Pnd4A3QJXu21ngTzHHnLqKVtCjGWfO0FZKSXb3XiGiTdA==}
 
-  '@types/crypto-js@4.1.1':
-    resolution: {integrity: sha512-BG7fQKZ689HIoc5h+6D2Dgq1fABRa0RbBWKBd9SP/MVRVXROflpm5fhwyATX5duFmbStzyzyycPB8qUYKDH3NA==}
-
   '@types/html-minifier@4.0.2':
     resolution: {integrity: sha512-4IkmkXJP/25R2fZsCHDX2abztXuQRzUAZq39PfCMz2loLFj8vS9y7aF6vDl58koXSTpsF+eL4Lc5Y4Aww/GCTQ==}
 
@@ -560,20 +554,6 @@ packages:
 
   '@types/uuid@9.0.1':
     resolution: {integrity: sha512-rFT3ak0/2trgvp4yYZo5iKFEPsET7vKydKF+VRCxlQ9bpheehyAJH89dAkaLEq/j/RZXJIqcgsmPJKUP1Z28HA==}
-
-  '@upstash/redis@1.34.4':
-    resolution: {integrity: sha512-AZx2iD5s1Pu/KCrRA7KVCffu3NSoaYnNY7N9YI7aLAYhcJfsriQKTe+8OxQWJqGqFbrvm17Lyr9HFnDLvqNpfA==}
-
-  '@vercel/analytics@1.2.0':
-    resolution: {integrity: sha512-Q9hduY6+i73Is1m57Y3OlawleeYVi4cvuh/0j6IwmSndMOE4+BKkMwjnwz+7xnqfZCanipIG6+q+zHalH9X0Zg==}
-    peerDependencies:
-      next: '>= 13'
-      react: ^18 || ^19
-    peerDependenciesMeta:
-      next:
-        optional: true
-      react:
-        optional: true
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -685,12 +665,6 @@ packages:
 
   countdown@2.6.0:
     resolution: {integrity: sha512-96C3ntj6/Q0KiikjRxDTrnw09VHI1x930gDTxBnTN8spEjySAT4ftvPXbM22Wn1pp5X0HvZ9uw6DOIf2d8g7rg==}
-
-  crypto-js@4.1.1:
-    resolution: {integrity: sha512-o2JlM7ydqd3Qk9CA0L4NL6mTzU2sdx96a+oOfPu8Mkl/PK51vSyoi8/rQ8NknZtk44vq15lmhAj9CIAGwgeWKw==}
-
-  crypto-js@4.2.0:
-    resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
 
   cssesc@3.0.0:
     resolution: {integrity: sha512-/Tb/JcjK111nNScGob5MNtsntNM1aCNUDipB/TkwZFhyDrrE47SOx/18wF2bbjgc3ZzCSKW1T5nt5EbFoAz/Vg==}
@@ -848,9 +822,6 @@ packages:
   import-fresh@3.3.0:
     resolution: {integrity: sha512-veYYhQa+D1QBKznvhUHxb8faxlrwUnxseDAbAp457E0wLNio2bOSKnjYDhMj+YiAq61xrMGhQk9iXVk5FzgQMw==}
     engines: {node: '>=6'}
-
-  import-meta-resolve@2.2.2:
-    resolution: {integrity: sha512-f8KcQ1D80V7RnqVm+/lirO9zkOxjGxhaTC1IPrBGd3MEfNgmNG67tSUO9gTi2F3Blr2Az6g1vocaxzkVnWl9MA==}
 
   inflight@1.0.6:
     resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
@@ -1246,9 +1217,6 @@ packages:
 
   sdp@3.2.0:
     resolution: {integrity: sha512-d7wDPgDV3DDiqulJjKiV2865wKsJ34YI+NDREbm+FySq6WuKOikwyNQcm+doLAZ1O6ltdO0SeKle2xMpN3Brgw==}
-
-  server-only@0.0.1:
-    resolution: {integrity: sha512-qepMx2JxAa5jjfzxG79yPPq+8BuFToHd1hm7kI+Z4zAq1ftQiP7HcxMhDDItrbtwVeLg/cY2JnKnrcFkmiswNA==}
 
   set-blocking@2.0.0:
     resolution: {integrity: sha512-KiKBS8AnWGEyLzofFfmvKwpdPzqiy16LvQfK3yv/fVH7Bj13/wl3JSR1J+rfgRE9q7xUJK4qvgS8raSOeLUehw==}
@@ -1856,6 +1824,13 @@ snapshots:
       '@firebase/util': 1.9.3
       tslib: 2.5.0
 
+  '@firebase/rules-unit-testing@2.0.7(firebase@9.19.1)':
+    dependencies:
+      firebase: 9.19.1
+      node-fetch: 2.6.7
+    transitivePeerDependencies:
+      - encoding
+
   '@firebase/storage-compat@0.3.2(@firebase/app-compat@0.2.7)(@firebase/app-types@0.9.0)(@firebase/app@0.9.7)':
     dependencies:
       '@firebase/app-compat': 0.2.7
@@ -1969,10 +1944,9 @@ snapshots:
 
   '@protobufjs/utf8@1.1.0': {}
 
-  '@sveltejs/adapter-auto@2.0.0(@sveltejs/kit@1.15.7(svelte@3.58.0)(vite@4.2.1(@types/node@18.15.11)(sass@1.62.0)))':
+  '@sveltejs/adapter-static@2.0.3(@sveltejs/kit@1.15.7(svelte@3.58.0)(vite@4.2.1(@types/node@18.15.11)(sass@1.62.0)))':
     dependencies:
       '@sveltejs/kit': 1.15.7(svelte@3.58.0)(vite@4.2.1(@types/node@18.15.11)(sass@1.62.0))
-      import-meta-resolve: 2.2.2
 
   '@sveltejs/kit@1.15.7(svelte@3.58.0)(vite@4.2.1(@types/node@18.15.11)(sass@1.62.0))':
     dependencies:
@@ -2016,8 +1990,6 @@ snapshots:
 
   '@types/countdown@0.0.8': {}
 
-  '@types/crypto-js@4.1.1': {}
-
   '@types/html-minifier@4.0.2':
     dependencies:
       '@types/clean-css': 4.2.6
@@ -2041,14 +2013,6 @@ snapshots:
       source-map: 0.6.1
 
   '@types/uuid@9.0.1': {}
-
-  '@upstash/redis@1.34.4':
-    dependencies:
-      crypto-js: 4.2.0
-
-  '@vercel/analytics@1.2.0':
-    dependencies:
-      server-only: 0.0.1
 
   ansi-regex@5.0.1: {}
 
@@ -2159,10 +2123,6 @@ snapshots:
   cookie@0.5.0: {}
 
   countdown@2.6.0: {}
-
-  crypto-js@4.1.1: {}
-
-  crypto-js@4.2.0: {}
 
   cssesc@3.0.0: {}
 
@@ -2350,8 +2310,6 @@ snapshots:
     dependencies:
       parent-module: 1.0.1
       resolve-from: 4.0.0
-
-  import-meta-resolve@2.2.2: {}
 
   inflight@1.0.6:
     dependencies:
@@ -2656,8 +2614,6 @@ snapshots:
       source-map-js: 1.0.2
 
   sdp@3.2.0: {}
-
-  server-only@0.0.1: {}
 
   set-blocking@2.0.0: {}
 

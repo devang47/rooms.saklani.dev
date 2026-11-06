@@ -1,78 +1,34 @@
-import { loading, loadingUpload } from "$stores";
 import {
   ref,
   uploadBytesResumable,
   getDownloadURL,
   getStorage,
 } from "firebase/storage";
-import { app } from "../utils/config";
-import { addNotification } from "../utils/notifications";
-import CryptoJS from "crypto-js";
+import { app, ensureAuth } from "../utils/config";
+import { randomString, roomKeys } from "./crypt";
 import { gsap } from "gsap";
 
-export const uploadFile = (roomId: string, file: any) =>
-  new Promise((resolve, reject) => {
-    const cryptedKey = CryptoJS.SHA512(roomId).toString(CryptoJS.enc.Hex);
+export const MAX_FILE_SIZE = 100 * 1024 * 1024; // keep in sync with storage.rules
 
-    const storage = getStorage(app);
-    const storageRef = ref(storage, cryptedKey + "/" + file.name);
+/** Uploads a file to the room's folder and resolves its download URL. */
+export const uploadFile = async (roomId: string, file: File) => {
+  if (file.size > MAX_FILE_SIZE)
+    throw new Error("File size exceeds the 100 MB limit");
 
-    const uploadTask = uploadBytesResumable(storageRef, file);
-    uploadTask.on(
-      "state_changed",
-      (snapshot) => {
-        if (snapshot.totalBytes > 204857600) {
-          uploadTask.cancel();
-          loading.set(false);
-          loadingUpload.set(false);
+  await ensureAuth();
+  const { id } = await roomKeys(roomId);
+  // Random prefix: same-named uploads no longer overwrite each other.
+  const storageRef = ref(
+    getStorage(app),
+    `${id}/${randomString(8)}-${file.name}`,
+  );
 
-          addNotification("File size exceeds 20mb limit!", true);
-          return;
-        }
-
-        const progress =
-          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-
-        gsap.to(".loading-bar-width", {
-          width: Math.max(progress, 30) + "%",
-        });
-      },
-      (error) => {
-        loading.set(false);
-        loadingUpload.set(false);
-        addNotification("Error while uploading file!", true);
-        reject(error);
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then(async (e) => {
-          loading.set(false);
-          loadingUpload.set(false);
-          resolve(e);
-        });
-      },
-    );
+  const uploadTask = uploadBytesResumable(storageRef, file);
+  uploadTask.on("state_changed", (snapshot) => {
+    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+    gsap.to(".loading-bar-width", { width: Math.max(progress, 30) + "%" });
   });
 
-export const minifyURL = async (e: string) =>
-  new Promise((resolve, reject) => {
-    var data = {
-      url: e,
-      domain: "tiny.one",
-    };
-
-    fetch("https://api.tinyurl.com/create", {
-      method: "post",
-      headers: {
-        accept: "application/json",
-        "content-Type": "application/json",
-        authorization: `Bearer ${import.meta.env.VITE_SHORTIO_API_KEY}`,
-      },
-      body: JSON.stringify(data),
-    })
-      .then(function (response) {
-        return response.json();
-      })
-      .then(function (data) {
-        resolve(data.data.tiny_url);
-      });
-  });
+  await uploadTask;
+  return getDownloadURL(uploadTask.snapshot.ref);
+};

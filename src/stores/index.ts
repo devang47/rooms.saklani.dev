@@ -1,4 +1,3 @@
-import type { User } from "firebase/auth";
 import type Peer from "peerjs";
 import { writable } from "svelte/store";
 
@@ -7,7 +6,6 @@ export const roomMessages = writable<any>([]);
 export let loading = writable<boolean>(true);
 export let loadingUpload = writable<boolean>(false);
 export let notifications = writable<CustomNotification[]>([]);
-export let user = writable<User>();
 export let roomData = writable<any>(false);
 
 export let peerInstance = writable<Peer>();

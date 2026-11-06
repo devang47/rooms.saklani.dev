@@ -1,0 +1,11 @@
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  # Origin only cross-site: room URLs contain the room code. (Not no-referrer: Firebase
+  # API key referrer restrictions need the origin.)
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(self), microphone=(self), geolocation=(), payment=()
+
+# Hashed filenames: safe to cache forever.
+/_app/immutable/*
+  Cache-Control: public, max-age=31536000, immutable

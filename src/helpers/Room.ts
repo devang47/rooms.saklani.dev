@@ -1,63 +1,47 @@
-import { analytics, app } from "../utils/config";
+import { analytics, app, ensureAuth } from "../utils/config";
 import {
   doc,
   addDoc,
   setDoc,
   getDoc,
+  getDocs,
   getFirestore,
   collection,
   query,
   orderBy,
   deleteDoc,
   onSnapshot,
-  Timestamp,
-  getDocs,
+  serverTimestamp,
+  type Timestamp,
 } from "firebase/firestore";
 import { logEvent } from "firebase/analytics";
-
-// import {  } from "firebase/firestore/lite";
-
-import CryptoJS from "crypto-js";
-import { encrypt } from "./crypt";
-import { roomMessages } from "$stores";
 import { getStorage, listAll, ref, deleteObject } from "firebase/storage";
+import { roomMessages } from "$stores";
+import { addNotification } from "$utils/notifications";
+import { decrypt, encrypt, randomString, roomKeys } from "./crypt";
 
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-export const getRand = (() => {
-  const gen = (min: number, max: number) =>
-    max++ && [...Array(max - min)].map((s, i) => String.fromCharCode(min + i));
+export const MAX_MESSAGE_LENGTH = 10_000;
 
-  const sets = {
-    num: gen(48, 57),
-    alphaLower: gen(97, 122),
-    alphaUpper: gen(65, 90),
-    special: [...``],
-  };
-
-  function* iter(len: number, set: any) {
-    if (set.length < 1) set = Object.values(sets).flat();
-    for (let i = 0; i < len; i++) yield set[(Math.random() * set.length) | 0];
-  }
-
-  return Object.assign(
-    (len: number, ...set: any) => [...iter(len, set.flat())].join(""),
-    sets,
-  );
-})();
+/** Random per-browser ID, only used to right-align your own messages. */
+const getDeviceId = () => {
+  let id = localStorage.getItem("deviceId");
+  if (!id) localStorage.setItem("deviceId", (id = randomString(16)));
+  return id;
+};
 
 export const createRoom = async () => {
-  const roomId = getRand(6).toUpperCase();
-  const cryptedRoomId = CryptoJS.SHA512(roomId).toString(CryptoJS.enc.Hex);
+  await ensureAuth();
+  const code = randomString(6);
+  const { id } = await roomKeys(code);
 
-  await setDoc(doc(db, "rooms", cryptedRoomId), {
-    timestamp: new Date().getTime(),
-  });
-
+  // Rules only allow `create`, so a (very unlikely) code collision fails instead of hijacking a room.
+  await setDoc(doc(db, "rooms", id), { createdAt: serverTimestamp() });
   logEvent(analytics, "room_created");
 
-  return roomId;
+  return code;
 };
 
 export const addMessage = async ({
@@ -67,88 +51,84 @@ export const addMessage = async ({
   roomId: string;
   message: string;
 }) => {
-  const cryptedKey = CryptoJS.SHA512(roomId).toString(CryptoJS.enc.Hex);
-  const cryptedDeviceDetails = CryptoJS.SHA256(navigator.userAgent).toString(
-    CryptoJS.enc.Hex,
-  );
+  await ensureAuth();
+  const { id, key } = await roomKeys(roomId);
 
-  const encryptedMessage = encrypt(cryptedKey, message);
-
-  await addDoc(collection(db, "rooms", cryptedKey, "data"), {
-    data: encryptedMessage,
-    timestamp: new Date().getTime(),
-    device: cryptedDeviceDetails,
+  await addDoc(collection(db, "rooms", id, "data"), {
+    ...(await encrypt(key, message)),
+    timestamp: Date.now(),
+    device: getDeviceId(),
   });
-
   logEvent(analytics, "message_pushed");
 };
 
+/** Subscribes to decrypted room messages. Returns the unsubscribe function. */
 export const getRoomMessages = async (
   roomId: string,
   scrollToBottom: () => void,
 ) => {
-  const cryptedKey = CryptoJS.SHA512(roomId).toString(CryptoJS.enc.Hex);
+  await ensureAuth();
+  const { id, key } = await roomKeys(roomId);
+  const me = getDeviceId();
+  let latest = 0;
 
-  const dataCollection = collection(db, "rooms", cryptedKey, "data");
+  return onSnapshot(
+    query(collection(db, "rooms", id, "data"), orderBy("timestamp")),
+    async (snapshot) => {
+      const run = ++latest;
+      const messages = await Promise.all(
+        snapshot.docs.map(async (d) => {
+          const m = d.data();
+          try {
+            return {
+              id: d.id,
+              data: await decrypt(key, { iv: m.iv, data: m.data }),
+              timestamp: m.timestamp,
+              device: m.device,
+              mine: m.device === me,
+            };
+          } catch {
+            return null; // undecryptable (e.g. legacy format): skip it
+          }
+        }),
+      );
+      if (run !== latest) return; // a newer snapshot already won
 
-  const dataQuery = query(dataCollection, orderBy("timestamp"));
-
-  onSnapshot(dataQuery, (snapshot) => {
-    roomMessages.set(snapshot.docs.map((doc) => doc.data()) || []);
-
-    setTimeout(() => {
-      scrollToBottom();
-    }, 100);
-  });
+      roomMessages.set(messages.filter(Boolean));
+      setTimeout(scrollToBottom, 100);
+    },
+    () => addNotification("This room has expired or was deleted", true),
+  );
 };
 
-export const checkIfRoomExists = async (roomId: string) =>
-  new Promise((resolve, reject) => {
-    roomId = roomId.toUpperCase();
+/** Resolves `{ timestamp }` (creation time in ms) for a live room, or `false`. */
+export const checkIfRoomExists = async (roomId: string) => {
+  await ensureAuth();
+  const { id } = await roomKeys(roomId);
+  logEvent(analytics, "check_for_room_existance");
 
-    const cryptedKey = CryptoJS.SHA512(roomId).toString(CryptoJS.enc.Hex);
-
-    var docRef = doc(db, "rooms", cryptedKey);
-
-    getDoc(docRef)
-      .then((doc) => {
-        if (doc.exists()) {
-          resolve(doc.data());
-        } else {
-          resolve(false);
-        }
-      })
-      .catch((error) => {
-        reject("Error getting document: " + error.message);
-      });
-
-    logEvent(analytics, "check_for_room_existance");
-  });
+  try {
+    const snap = await getDoc(doc(db, "rooms", id));
+    const createdAt = snap.get("createdAt") as Timestamp | undefined;
+    return createdAt ? { timestamp: createdAt.toMillis() } : false;
+  } catch (err: any) {
+    // Rules deny reads of missing and expired rooms alike.
+    if (err?.code === "permission-denied") return false;
+    throw err;
+  }
+};
 
 export const deleteRoom = async (roomId: string) => {
-  roomId = roomId.toUpperCase();
-  const cryptedKey = CryptoJS.SHA512(roomId).toString(CryptoJS.enc.Hex);
+  await ensureAuth();
+  const { id } = await roomKeys(roomId);
 
-  const filesRef = ref(storage, cryptedKey + "/");
-  const files = await listAll(filesRef);
+  // Files and messages first: rules only allow listing them while the room doc exists.
+  const files = await listAll(ref(storage, id));
+  await Promise.all(files.items.map((file) => deleteObject(file)));
 
-  files.items.forEach(async (e) => {
-    // @ts-ignore
-    let path = e._location.path;
+  const messages = await getDocs(collection(db, "rooms", id, "data"));
+  await Promise.all(messages.docs.map((d) => deleteDoc(d.ref)));
 
-    const filesRef = ref(storage, path);
-    await deleteObject(filesRef);
-  });
-
-  const docRef = doc(db, "rooms", cryptedKey);
-
-  const q = query(collection(db, "rooms", cryptedKey, "data"));
-  const querySnapshot = await getDocs(q);
-
-  querySnapshot.forEach(async (doData) => {
-    await deleteDoc(doc(db, "rooms", cryptedKey, "data", doData.id));
-  });
-
-  await deleteDoc(docRef);
+  await deleteDoc(doc(db, "rooms", id));
   logEvent(analytics, "room_deleted");
 };

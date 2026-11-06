@@ -1,7 +1,7 @@
 import { browser } from "$app/environment";
 import { initializeApp } from "firebase/app";
 import { getAnalytics, type Analytics } from "firebase/analytics";
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged, signInAnonymously } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_API_KEY,
@@ -19,3 +19,17 @@ let analytics: Analytics;
 if (typeof window !== "undefined") analytics = getAnalytics();
 let auth = getAuth(app);
 export { analytics, auth };
+
+// Firestore/Storage rules require auth: every room call awaits this first.
+let authReady: Promise<void> | undefined;
+export const ensureAuth = () =>
+  (authReady ??= new Promise<void>((resolve, reject) => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      unsub();
+      if (u) resolve();
+      else signInAnonymously(auth).then(() => resolve(), reject);
+    });
+  }).catch((err) => {
+    authReady = undefined;
+    throw err;
+  }));

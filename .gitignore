@@ -4,5 +4,7 @@ node_modules
 .env
 .DS_Store
 wrangler.toml
-.vercel
+/build
+.wrangler
 yarn-error.log
+*-debug.log

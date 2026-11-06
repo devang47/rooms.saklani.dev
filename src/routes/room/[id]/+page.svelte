@@ -13,15 +13,19 @@ import {
   checkIfRoomExists,
   deleteRoom,
   getRoomMessages,
+  MAX_MESSAGE_LENGTH,
 } from "$helpers/Room";
 import { uploadFile } from "$helpers/storage";
-import { onMount } from "svelte";
+import { onDestroy, onMount } from "svelte";
 
 let roomId: string;
 let scrollToElement: HTMLDivElement;
 let chatInput = "";
 let chatInputBox: HTMLTextAreaElement;
 let uploadFileInput: HTMLInputElement;
+let unsubscribe: (() => void) | undefined;
+
+onDestroy(() => unsubscribe?.());
 
 onMount(async () => {
   roomId = $page.params.id.toUpperCase() as string;
@@ -32,7 +36,7 @@ onMount(async () => {
     addNotification("Room doesn't exists", true);
     goto("/");
   } else {
-    await getRoomMessages(roomId, scrollToBottom);
+    unsubscribe = await getRoomMessages(roomId, scrollToBottom);
     loading.set(false);
   }
 
@@ -75,19 +79,21 @@ const handleAddMsg = async () => {
   }
 };
 
-const handleInputChange = async (e: any) => {
-  if (e?.target?.files.length > 0) {
-    $loading = true;
-    $loadingUpload = true;
-    try {
-      let url = await uploadFile(roomId, e.target.files[0]);
+const handleInputChange = async (e: Event) => {
+  const input = e.currentTarget as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = ""; // allow picking the same file again
+  if (!file) return;
 
-      if (chatInput.trim()) return (chatInput += " " + url);
-      chatInput += url;
-    } catch (error) {
-      console.log(error);
-      addNotification("Failed to upload file");
-    }
+  $loading = true;
+  $loadingUpload = true;
+  try {
+    const url = await uploadFile(roomId, file);
+    chatInput = chatInput.trim() ? `${chatInput} ${url}` : url;
+  } catch (error: any) {
+    // Our own errors (size limit) are readable; Firebase ones are not.
+    addNotification(error?.code ? "Failed to upload file" : error.message, true);
+  } finally {
     $loading = false;
     $loadingUpload = false;
   }
@@ -95,7 +101,12 @@ const handleInputChange = async (e: any) => {
 
 const handleDeleteRoom = async () => {
   $loading = true;
-  await deleteRoom(roomId);
+  try {
+    await deleteRoom(roomId);
+  } catch {
+    addNotification("Couldn't delete the room, it will expire on its own", true);
+  }
+  unsubscribe?.();
   $roomMessages = [];
   goto("/");
 };
@@ -140,8 +151,8 @@ const scrollToBottom = () => {
             </div>
           </div>
         {:else}
-          {#each $roomMessages as item}
-            <Message encrypted roomId={roomId} messageData={item} />
+          {#each $roomMessages as item (item.id)}
+            <Message messageData={item} />
           {/each}
         {/if}
 
@@ -158,6 +169,7 @@ const scrollToBottom = () => {
           id="input"
           cols="30"
           rows="10"
+          maxlength={MAX_MESSAGE_LENGTH}
           bind:this={chatInputBox}
           bind:value={chatInput}
         />
