@@ -1,11 +1,13 @@
 <script>
   import { fly } from "svelte/transition";
+  /** @type {{ [key: string]: any }} */
+  let { ...props } = $props();
 </script>
 
-<div class="spinner text-dark {$$props.class}" in:fly|global={{ y: -24 }}>
-  <div class="bounce1" />
-  <div class="bounce2" />
-  <div class="bounce3" />
+<div class="spinner text-dark {props.class}" in:fly|global={{ y: -24 }}>
+  <div class="bounce1"></div>
+  <div class="bounce2"></div>
+  <div class="bounce3"></div>
 </div>
 
 <style lang="postcss">

@@ -1,5 +1,5 @@
 import { PeerConnection } from ".";
-import { addNotification } from "$utils/notifications";
+import { addNotification } from "#utils/notifications.ts";
 import {
   connectionListLoading,
   handleReceiveData,

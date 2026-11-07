@@ -1,3 +1,5 @@
+@use "sass:meta";
+
 @tailwind base;
 @tailwind components;
 
@@ -50,9 +52,9 @@ button {
   @apply flex-shrink-0 outline-offset-4 focus:outline-2 focus:outline-gray-800;
 }
 
-@import "homepage";
-@import "join";
-@import "chat";
-@import "button";
+@include meta.load-css("homepage");
+@include meta.load-css("join");
+@include meta.load-css("chat");
+@include meta.load-css("button");
 
 @tailwind utilities;

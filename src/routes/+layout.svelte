@@ -1,12 +1,17 @@
 <script lang="ts">
-  import Notifications from "$lib/sections/Notifications.svelte";
-  import LoadingScreen from "$lib/sections/LoadingScreen.svelte";
-  import { loading, user } from "$stores";
+  import Notifications from "#lib/sections/Notifications.svelte";
+  import LoadingScreen from "#lib/sections/LoadingScreen.svelte";
+  import { loading, user } from "#stores";
   import SvelteSeo from "svelte-seo";
   import { onMount } from "svelte";
-  import "$styles/global.scss";
-  import { ensureSignedIn } from "$utils/config";
-  import { addNotification } from "$utils/notifications";
+  import "#styles/global.scss";
+  import { ensureSignedIn } from "#utils/config.ts";
+  import { addNotification } from "#utils/notifications.ts";
+  interface Props {
+    children?: import("svelte").Snippet;
+  }
+
+  let { children }: Props = $props();
 
   onMount(() => {
     ensureSignedIn()
@@ -26,7 +31,7 @@
 
 <Notifications />
 
-<slot />
+{@render children?.()}
 
 <SvelteSeo
   title="Chat Rooms | Devang Saklani"

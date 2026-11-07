@@ -1,4 +1,4 @@
-import { loading, loadingUpload } from "$stores";
+import { loading, loadingUpload } from "#stores";
 import {
   ref,
   uploadBytesResumable,
@@ -58,27 +58,3 @@ export const uploadFile = async (roomId: string, file: File) => {
     );
   });
 };
-
-export const minifyURL = async (e: string) =>
-  new Promise((resolve, reject) => {
-    var data = {
-      url: e,
-      domain: "tiny.one",
-    };
-
-    fetch("https://api.tinyurl.com/create", {
-      method: "post",
-      headers: {
-        accept: "application/json",
-        "content-Type": "application/json",
-        authorization: `Bearer ${import.meta.env.VITE_SHORTIO_API_KEY}`,
-      },
-      body: JSON.stringify(data),
-    })
-      .then(function (response) {
-        return response.json();
-      })
-      .then(function (data) {
-        resolve(data.data.tiny_url);
-      });
-  });

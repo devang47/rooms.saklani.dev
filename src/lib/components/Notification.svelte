@@ -1,8 +1,12 @@
 <script lang="ts">
   import { scale } from "svelte/transition";
-  export let data: CustomNotification;
 
-  export let error = false;
+  interface Props {
+    data: CustomNotification;
+    error?: boolean;
+  }
+
+  let { data, error = false }: Props = $props();
 </script>
 
 <div

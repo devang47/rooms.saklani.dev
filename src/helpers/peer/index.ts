@@ -5,7 +5,7 @@ import Peer, {
   PeerError,
 } from "peerjs";
 import { addNotification } from "../../utils/notifications";
-import { generateRandomName } from "$utils";
+import { generateRandomName } from "#utils/index.ts";
 import { get } from "svelte/store";
 import {
   connectionState,
@@ -13,7 +13,7 @@ import {
   relayMessages,
   remoteUserVideoRef,
   videoCallDialogOpen,
-} from "$stores";
+} from "#stores";
 
 let activeConnectionsMap: Map<string, DataConnection> = new Map<
   string,

@@ -18,7 +18,7 @@ import { logEvent } from "firebase/analytics";
 // import {  } from "firebase/firestore/lite";
 
 import { deriveRoom, encrypt, generateRoomCode } from "./crypt";
-import { roomMessages } from "$stores";
+import { roomMessages } from "#stores";
 import {
   connectStorageEmulator,
   getStorage,

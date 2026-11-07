@@ -7,3 +7,4 @@ wrangler.toml
 .vercel
 yarn-error.log
 *-debug.log
+build

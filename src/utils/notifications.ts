@@ -1,4 +1,4 @@
-import { notifications } from "$stores";
+import { notifications } from "#stores";
 import { get } from "svelte/store";
 
 export let addNotification = (

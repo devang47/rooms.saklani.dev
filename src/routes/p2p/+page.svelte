@@ -1,54 +1,62 @@
 <script lang="ts">
-import {
-  connectionState,
-  currentUserVideoRef,
-  videoCallDialogOpen,
-  loading,
-  remoteUserVideoRef,
-} from "$stores";
-import { addNotification } from "$utils/notifications";
-import { onMount } from "svelte";
-import ChatHeaderWebrtc from "$lib/sections/ChatHeaderWebrtc.svelte";
-import { connectPeer, selectConnection } from "$helpers/peer/actions";
-import StartServerScreen from "$lib/sections/rtc/StartServerScreen.svelte";
-import P2PChatUi from "$lib/sections/rtc/P2PChatUI.svelte";
-import { closeCall, PeerConnection, sendSystemMessage } from "$helpers/peer";
-import { clickOutside } from "$lib/hooks/useClickOutside";
+  import {
+    connectionState,
+    currentUserVideoRef,
+    videoCallDialogOpen,
+    loading,
+    remoteUserVideoRef,
+  } from "#stores";
+  import { addNotification } from "#utils/notifications.ts";
+  import { onMount } from "svelte";
+  import ChatHeaderWebrtc from "#lib/sections/ChatHeaderWebrtc.svelte";
+  import { connectPeer, selectConnection } from "#helpers/peer/actions.ts";
+  import StartServerScreen from "#lib/sections/rtc/StartServerScreen.svelte";
+  import P2PChatUi from "#lib/sections/rtc/P2PChatUI.svelte";
+  import {
+    closeCall,
+    PeerConnection,
+    sendSystemMessage,
+  } from "#helpers/peer/index.ts";
+  import { clickOutside } from "#lib/hooks/useClickOutside.ts";
 
-onMount(() => {
-  loading.set(false);
-});
+  onMount(() => {
+    loading.set(false);
+  });
 
-let newConnectionIdInput = "";
+  let newConnectionIdInput = $state("");
 
-const handleStartVideoCall = (peerId: string) => {
-  $videoCallDialogOpen = true;
-  PeerConnection.callPeer(peerId);
-};
+  const handleStartVideoCall = (peerId: string) => {
+    $videoCallDialogOpen = true;
+    PeerConnection.callPeer(peerId);
+  };
 
-const handleCloseVideoCall = () => {
-  closeCall();
-  sendSystemMessage("Call ended");
-};
+  const handleCloseVideoCall = () => {
+    closeCall();
+    sendSystemMessage("Call ended");
+  };
 
-const handleConnectOtherPeer = async () => {
-  if (newConnectionIdInput.trim() !== "") {
-    if (newConnectionIdInput !== $connectionState.id) {
-      await connectPeer(newConnectionIdInput.toLowerCase());
-      newConnectionIdInput = "";
-    } else {
-      addNotification("Cannot connect to self", true);
-    }
-  } else addNotification("Please enter a valid ID", true);
-};
+  const handleConnectOtherPeer = async () => {
+    if (newConnectionIdInput.trim() !== "") {
+      if (newConnectionIdInput !== $connectionState.id) {
+        await connectPeer(newConnectionIdInput.toLowerCase());
+        newConnectionIdInput = "";
+      } else {
+        addNotification("Cannot connect to self", true);
+      }
+    } else addNotification("Please enter a valid ID", true);
+  };
 
-let innerWidth = 0;
+  let innerWidth = $state(0);
 
-$: !$connectionState.id && (newConnectionIdInput = "");
-$: videoWidth = innerWidth > 768 ? 340 : innerWidth > 400 ? 300 : 250;
+  $effect(() => {
+    if (!$connectionState.id) newConnectionIdInput = "";
+  });
+  let videoWidth = $derived(
+    innerWidth > 768 ? 340 : innerWidth > 400 ? 300 : 250,
+  );
 </script>
 
-<svelte:window bind:innerWidth={innerWidth} />
+<svelte:window bind:innerWidth />
 
 <section class="chat-ui !h-fit min-h-screen !py-20">
   <div class="container !h-fit !rounded-xl">
@@ -72,7 +80,7 @@ $: videoWidth = innerWidth > 768 ? 340 : innerWidth > 400 ? 300 : 250;
 
             <button
               class="btn-secondary rounded-lg bg-[#555E69] px-4 py-2 text-sm font-medium text-light shadow-none"
-              on:click={handleConnectOtherPeer}>Connect</button
+              onclick={handleConnectOtherPeer}>Connect</button
             >
           </div>
 
@@ -95,7 +103,7 @@ $: videoWidth = innerWidth > 768 ? 340 : innerWidth > 400 ? 300 : 250;
                     conn
                       ? 'bg-[#555E69] text-light shadow-md'
                       : 'bg-[#555E69]/60 text-light'}"
-                    on:click={() => selectConnection(conn)}
+                    onclick={() => selectConnection(conn)}
                   >
                     {conn}
                   </button>
@@ -147,7 +155,7 @@ $: videoWidth = innerWidth > 768 ? 340 : innerWidth > 400 ? 300 : 250;
 
     <button
       class="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 shadow-none hover:bg-red-50 md:absolute md:bottom-3 md:left-1/2 md:-translate-x-1/2"
-      on:click={handleCloseVideoCall}
+      onclick={handleCloseVideoCall}
       >End Call
     </button>
   </div>

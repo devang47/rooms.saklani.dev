@@ -1,42 +1,53 @@
 <script lang="ts">
-import { onMount } from "svelte";
-import { decrypt, deriveRoom } from "$helpers/crypt";
-import { addNotification } from "$utils/notifications";
-import { scale } from "svelte/transition";
-import CopyIcon from "$lib/icons/CopyIcon.svelte";
-import { connectionState, user } from "$stores";
+  import { onMount } from "svelte";
+  import { decrypt, deriveRoom } from "#helpers/crypt.ts";
+  import { addNotification } from "#utils/notifications.ts";
+  import { scale } from "svelte/transition";
+  import CopyIcon from "#lib/icons/CopyIcon.svelte";
+  import { connectionState, user } from "#stores";
 
-export let messageData: RelayMessage;
-export let roomId = "";
-export let encrypted = false;
-export let showMetadata = false;
-
-let message = "";
-
-$: sameDevice = encrypted
-  ? messageData.device === $user?.uid
-  : messageData.deviceId === $connectionState.id;
-
-onMount(async () => {
-  if (!encrypted) {
-    message = messageData.data;
-    return;
+  interface Props {
+    messageData: RelayMessage;
+    roomId?: string;
+    encrypted?: boolean;
+    showMetadata?: boolean;
   }
 
-  try {
-    const { key } = await deriveRoom(roomId);
-    message = await decrypt(key, messageData.data);
-  } catch {
-    message = "Unable to decrypt this message";
-  }
-});
+  let {
+    messageData,
+    roomId = "",
+    encrypted = false,
+    showMetadata = false,
+  }: Props = $props();
 
-let done = false;
-const copyText = () => {
-  navigator.clipboard.writeText(message);
-  done = true;
-  addNotification("Copied to clipboard!", false);
-};
+  let message = $state("");
+
+  let sameDevice = $derived(
+    encrypted
+      ? messageData.device === $user?.uid
+      : messageData.deviceId === $connectionState.id,
+  );
+
+  onMount(async () => {
+    if (!encrypted) {
+      message = messageData.data;
+      return;
+    }
+
+    try {
+      const { key } = await deriveRoom(roomId);
+      message = await decrypt(key, messageData.data);
+    } catch {
+      message = "Unable to decrypt this message";
+    }
+  });
+
+  let done = $state(false);
+  const copyText = () => {
+    navigator.clipboard.writeText(message);
+    done = true;
+    addNotification("Copied to clipboard!", false);
+  };
 </script>
 
 <div
@@ -65,8 +76,8 @@ const copyText = () => {
 
   <button
     aria-label="copy text"
-    class:done={done}
-    on:click={copyText}
+    class:done
+    onclick={copyText}
     title="copy text"
     class="copy-btn"
   >

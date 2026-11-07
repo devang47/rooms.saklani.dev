@@ -1,97 +1,97 @@
 <script lang="ts">
-import { loading, roomData } from "$stores";
-import { checkIfRoomExists } from "$helpers/Room";
-import Button from "$lib/components/Button.svelte";
-import CircleAnimation from "$lib/components/CircleAnimation.svelte";
-import ArrowRight from "$lib/icons/ArrowRight.svelte";
-import DashedUnderline from "$lib/icons/DashedUnderline.svelte";
-import CurvedArrowLine from "$lib/icons/CurvedArrowLine.svelte";
-import { onMount } from "svelte";
-import { fly } from "svelte/transition";
-import { goto } from "$app/navigation";
-import { addNotification } from "$utils/notifications";
-import gsap, { Power3 } from "gsap";
-import FloatingImages from "$lib/sections/FloatingImages.svelte";
+  import { loading, roomData } from "#stores";
+  import { checkIfRoomExists } from "#helpers/Room.ts";
+  import Button from "#lib/components/Button.svelte";
+  import CircleAnimation from "#lib/components/CircleAnimation.svelte";
+  import ArrowRight from "#lib/icons/ArrowRight.svelte";
+  import DashedUnderline from "#lib/icons/DashedUnderline.svelte";
+  import CurvedArrowLine from "#lib/icons/CurvedArrowLine.svelte";
+  import { onMount } from "svelte";
+  import { fly } from "svelte/transition";
+  import { goto } from "$app/navigation";
+  import { addNotification } from "#utils/notifications.ts";
+  import gsap, { Power3 } from "gsap";
+  import FloatingImages from "#lib/sections/FloatingImages.svelte";
 
-let inputVal = "";
-let formLoading = "false";
-let roomExists = true;
-const joinRoom = async () => {
-  if (!inputVal || inputVal.length < 6) return;
-  formLoading = "true";
+  let inputVal = $state("");
+  let formLoading = $state("false");
+  let roomExists = $state(true);
+  const joinRoom = async () => {
+    if (!inputVal || inputVal.length < 6) return;
+    formLoading = "true";
 
-  $roomData = await checkIfRoomExists(inputVal);
-  if (!$roomData) {
-    formLoading = "false";
-    roomExists = false;
+    $roomData = await checkIfRoomExists(inputVal);
+    if (!$roomData) {
+      formLoading = "false";
+      roomExists = false;
 
-    addNotification("404 Not found!", true);
+      addNotification("404 Not found!", true);
 
-    return null;
-  }
+      return null;
+    }
 
-  roomExists = true;
-  formLoading = "complete";
+    roomExists = true;
+    formLoading = "complete";
 
-  gsap.to(".moveable-block", {
-    opacity: 0,
-    duration: 0.1,
-  });
-
-  gsap.to(".arrow-button", {
-    scale: 100,
-    duration: 0.3,
-    ease: "linear",
-  });
-
-  setTimeout(() => {
-    goto("/room/" + inputVal);
-  }, 800);
-};
-
-onMount(() => {
-  loading.set(false);
-
-  const tl = gsap.timeline({});
-
-  tl.to(".bg", {
-    delay: 0.2,
-    width: "100%",
-    duration: 0.8,
-    ease: Power3.easeOut,
-  })
-    .to(".content", {
-      delay: -0.5,
-      opacity: 1,
-      duration: 0.4,
-    })
-    .to(".moveable-block", {
-      delay: -0.6,
-      x: 0,
-      y: 0,
-      opacity: 1,
-      duration: 0.4,
+    gsap.to(".moveable-block", {
+      opacity: 0,
+      duration: 0.1,
     });
-});
 
-const handleGotoCreatePage = () => {
-  gsap
-    .to(".transition-join-page", {
-      height: "100%",
-      duration: 0.7,
+    gsap.to(".arrow-button", {
+      scale: 100,
+      duration: 0.3,
+      ease: "linear",
+    });
+
+    setTimeout(() => {
+      goto("/room/" + inputVal);
+    }, 800);
+  };
+
+  onMount(() => {
+    loading.set(false);
+
+    const tl = gsap.timeline({});
+
+    tl.to(".bg", {
+      delay: 0.2,
+      width: "100%",
+      duration: 0.8,
       ease: Power3.easeOut,
     })
-    .then(() => {
-      setTimeout(() => {
-        goto("/");
-      }, 100);
-    });
-};
+      .to(".content", {
+        delay: -0.5,
+        opacity: 1,
+        duration: 0.4,
+      })
+      .to(".moveable-block", {
+        delay: -0.6,
+        x: 0,
+        y: 0,
+        opacity: 1,
+        duration: 0.4,
+      });
+  });
+
+  const handleGotoCreatePage = () => {
+    gsap
+      .to(".transition-join-page", {
+        height: "100%",
+        duration: 0.7,
+        ease: Power3.easeOut,
+      })
+      .then(() => {
+        setTimeout(() => {
+          goto("/");
+        }, 100);
+      });
+  };
 </script>
 
 <FloatingImages />
 
-<div class="transition-join-page" />
+<div class="transition-join-page"></div>
 
 <section class="join-room-page">
   <div class="container">
@@ -104,7 +104,13 @@ const handleGotoCreatePage = () => {
         </span>
       </div>
 
-      <form action="#" on:submit|preventDefault={joinRoom}>
+      <form
+        action="#"
+        onsubmit={(event) => {
+          event.preventDefault();
+          joinRoom();
+        }}
+      >
         <div class="roomid-input">
           <input
             bind:value={inputVal}
@@ -145,7 +151,7 @@ const handleGotoCreatePage = () => {
               aria-label="create a new room"
               type="button"
               title="Create room"
-              on:click={handleGotoCreatePage}
+              onclick={handleGotoCreatePage}
               class=""
             >
               Create room
@@ -155,6 +161,6 @@ const handleGotoCreatePage = () => {
       </form>
     </div>
 
-    <div class="bg" />
+    <div class="bg"></div>
   </div>
 </section>

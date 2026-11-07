@@ -1,18 +1,27 @@
 <script lang="ts">
-  let btn: HTMLButtonElement;
+  import type { HTMLButtonAttributes } from "svelte/elements";
 
-  export let error: boolean = false;
-  export let type: "submit" | "reset" | "button" = "button";
-  export let label: string = "default label";
+  interface Props extends HTMLButtonAttributes {
+    error?: boolean;
+    label?: string;
+  }
+
+  let {
+    error = false,
+    type = "button",
+    label = "default label",
+    class: className = "",
+    onclick,
+    children,
+  }: Props = $props();
 </script>
 
 <button
-  on:click
+  {onclick}
   aria-label={label}
-  bind:this={btn}
   class:error
   {type}
-  class={`arrow-button group shadow-custom ${$$props.class}`}
+  class={`arrow-button group shadow-custom ${className}`}
 >
-  <slot />
+  {@render children?.()}
 </button>

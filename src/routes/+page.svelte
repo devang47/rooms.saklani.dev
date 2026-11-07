@@ -1,92 +1,92 @@
 <script lang="ts">
-import { goto } from "$app/navigation";
-import Button from "$lib/components/Button.svelte";
-import CircleAnimation from "$lib/components/CircleAnimation.svelte";
-import ArrowRight from "$lib/icons/ArrowRight.svelte";
-import CurvedArrowLine from "$lib/icons/CurvedArrowLine.svelte";
-import DashedUnderline from "$lib/icons/DashedUnderline.svelte";
-import Github from "$lib/icons/Github.svelte";
-import FloatingImages from "$lib/sections/FloatingImages.svelte";
-import { loading } from "$stores";
-import { createRoom } from "$helpers/Room";
-import { addNotification } from "$utils/notifications";
-import { onMount } from "svelte";
-import gsap, { Power3 } from "gsap";
+  import { goto } from "$app/navigation";
+  import Button from "#lib/components/Button.svelte";
+  import CircleAnimation from "#lib/components/CircleAnimation.svelte";
+  import ArrowRight from "#lib/icons/ArrowRight.svelte";
+  import CurvedArrowLine from "#lib/icons/CurvedArrowLine.svelte";
+  import DashedUnderline from "#lib/icons/DashedUnderline.svelte";
+  import Github from "#lib/icons/Github.svelte";
+  import FloatingImages from "#lib/sections/FloatingImages.svelte";
+  import { loading } from "#stores";
+  import { createRoom } from "#helpers/Room.ts";
+  import { addNotification } from "#utils/notifications.ts";
+  import { onMount } from "svelte";
+  import gsap, { Power3 } from "gsap";
 
-let roomId = "";
+  let roomId = "";
 
-let formLoading = "false";
+  let formLoading = $state("false");
 
-const transitionJoinPageStart = (callback: () => void) => {
-  gsap
-    .to(".transition-join-page", {
-      height: "100%",
-      duration: 0.7,
+  const transitionJoinPageStart = (callback: () => void) => {
+    gsap
+      .to(".transition-join-page", {
+        height: "100%",
+        duration: 0.7,
+        ease: Power3.easeOut,
+      })
+      .then(callback);
+  };
+
+  const handleCreateRoom = async () => {
+    formLoading = "true";
+    try {
+      roomId = await createRoom();
+    } catch (error) {
+      console.log(error);
+      formLoading = "false";
+      addNotification(
+        "Couldn't create the room. Check your connection and device clock.",
+        true,
+      );
+      return;
+    }
+    formLoading = "complete";
+
+    transitionJoinPageStart(() => {
+      setTimeout(() => {
+        $loading = true;
+        goto(`/room/${roomId}`);
+      }, 100);
+    });
+  };
+
+  const handleGotoJoinPage = () => {
+    transitionJoinPageStart(() => {
+      setTimeout(() => {
+        goto("/room");
+      }, 100);
+    });
+  };
+
+  onMount(() => {
+    loading.set(false);
+
+    const tl = gsap.timeline({});
+
+    tl.to(".bg", {
+      delay: 0.2,
+      width: "100%",
+      duration: 1,
       ease: Power3.easeOut,
     })
-    .then(callback);
-};
-
-const handleCreateRoom = async () => {
-  formLoading = "true";
-  try {
-    roomId = await createRoom();
-  } catch (error) {
-    console.log(error);
-    formLoading = "false";
-    addNotification(
-      "Couldn't create the room. Check your connection and device clock.",
-      true,
-    );
-    return;
-  }
-  formLoading = "complete";
-
-  transitionJoinPageStart(() => {
-    setTimeout(() => {
-      $loading = true;
-      goto(`/room/${roomId}`);
-    }, 100);
+      .to(".content", {
+        delay: -0.6,
+        opacity: 1,
+        duration: 0.4,
+      })
+      .to(".moveable-block", {
+        delay: -0.7,
+        x: 0,
+        y: 0,
+        opacity: 1,
+        duration: 0.4,
+      });
   });
-};
-
-const handleGotoJoinPage = () => {
-  transitionJoinPageStart(() => {
-    setTimeout(() => {
-      goto("/room");
-    }, 100);
-  });
-};
-
-onMount(() => {
-  loading.set(false);
-
-  const tl = gsap.timeline({});
-
-  tl.to(".bg", {
-    delay: 0.2,
-    width: "100%",
-    duration: 1,
-    ease: Power3.easeOut,
-  })
-    .to(".content", {
-      delay: -0.6,
-      opacity: 1,
-      duration: 0.4,
-    })
-    .to(".moveable-block", {
-      delay: -0.7,
-      x: 0,
-      y: 0,
-      opacity: 1,
-      duration: 0.4,
-    });
-});
 </script>
 
 <FloatingImages />
 
-<div class="transition-join-page" />
+<div class="transition-join-page"></div>
 
 <section class="homepage">
   <div
@@ -140,7 +140,7 @@ onMount(() => {
           <Button
             label="create a room"
             class="relative z-20 mt-5 w-[175px] text-sm md:w-[189px]"
-            on:click={handleCreateRoom}
+            onclick={handleCreateRoom}
           >
             {#if formLoading === "true"}
               <CircleAnimation class="w-[80px]" />
@@ -156,7 +156,7 @@ onMount(() => {
             or <button
               aria-label="Join existing room"
               title="Join existing room"
-              on:click={handleGotoJoinPage}
+              onclick={handleGotoJoinPage}
               class=""
             >
               Join room
@@ -260,20 +260,20 @@ onMount(() => {
       </div>
     </div>
 
-    <div class="bg" />
+    <div class="bg"></div>
   </div>
 </section>
 
 <style lang="postcss">
-:global(html) {
-  @apply !overflow-hidden;
-}
+  :global(html) {
+    @apply !overflow-hidden;
+  }
 
-li span {
-  @apply absolute left-0;
-}
+  li span {
+    @apply absolute left-0;
+  }
 
-li {
-  @apply relative pl-6;
-}
+  li {
+    @apply relative pl-6;
+  }
 </style>

@@ -1,5 +1,5 @@
-import { connectionState, initialState, loading, relayMessages } from "$stores";
-import { addNotification } from "$utils/notifications";
+import { connectionState, initialState, loading, relayMessages } from "#stores";
+import { addNotification } from "#utils/notifications.ts";
 import { closeCall, DataType, PeerConnection, type Data } from ".";
 import download from "js-file-download";
 

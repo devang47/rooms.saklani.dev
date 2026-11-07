@@ -1,13 +1,13 @@
 <div class="loading-bar">
-  <div class="loading-bar-width" />
+  <div class="loading-bar-width"></div>
 </div>
 
 <style lang="postcss">
   .loading-bar {
-    @apply w-96 h-1 bg-gray-200;
+    @apply h-1 w-96 bg-gray-200;
   }
 
   .loading-bar-width {
-    @apply w-0 bg-gray-600 h-full;
+    @apply h-full w-0 bg-gray-600;
   }
 </style>

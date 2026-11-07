@@ -1,13 +1,17 @@
 <script lang="ts">
   import QRCode from "qrcode";
-  import Dustbin from "$lib/icons/Dustbin.svelte";
-  import { roomData, roomMessages } from "$stores";
-  import { addNotification } from "$utils/notifications";
-  import { onDestroy, tick } from "svelte";
+  import Dustbin from "#lib/icons/Dustbin.svelte";
+  import { roomData, roomMessages } from "#stores";
+  import { addNotification } from "#utils/notifications.ts";
+  import { onMount, tick } from "svelte";
   import Modal from "./Modal.svelte";
 
-  export let roomId: string;
-  export let handleDeleteRoom: () => void;
+  interface Props {
+    roomId: string;
+    handleDeleteRoom: () => void;
+  }
+
+  let { roomId, handleDeleteRoom }: Props = $props();
 
   const copyText = () => {
     navigator.clipboard.writeText(roomId);
@@ -15,39 +19,26 @@
     addNotification("Copied to clipboard!", false);
   };
 
-  let timeRemainingBeforeRoomDeletion = "";
-  let interval: NodeJS.Timer;
-  let isQrModalOpen = false;
+  let isQrModalOpen = $state(false);
+  let now = $state(Date.now());
 
-  function startTimer(duration: number) {
-    if (!$roomData.timestamp) return;
-    if (interval) clearInterval(interval);
+  const timeRemainingBeforeRoomDeletion = $derived.by(() => {
+    if (!$roomData.timestamp) return "Deleted";
 
-    let timer = duration,
-      minutes,
-      seconds;
-    interval = setInterval(function () {
-      if (!$roomData.timestamp) return clearInterval(interval);
+    const seconds = Math.max(
+      0,
+      Math.floor((15 * 60000 - (now - $roomData.timestamp)) / 1000),
+    );
+    const pad = (value: number) => String(value).padStart(2, "0");
+    return `${pad(Math.floor(seconds / 60))}:${pad(seconds % 60)}`;
+  });
 
-      minutes = parseInt("" + timer / 60, 10);
-      seconds = parseInt("" + (timer % 60), 10);
+  onMount(() => {
+    const interval = setInterval(() => (now = Date.now()), 1000);
+    return () => clearInterval(interval);
+  });
 
-      if (minutes === 0 && seconds === 0) {
-        return (timeRemainingBeforeRoomDeletion = "00:00");
-      }
-
-      minutes = minutes < 10 ? "0" + minutes : minutes;
-      seconds = seconds < 10 ? "0" + seconds : seconds;
-
-      timeRemainingBeforeRoomDeletion = minutes + ":" + seconds;
-
-      if (--timer < 0) {
-        timer = duration;
-      }
-    }, 1000);
-  }
-
-  let canvasEl: HTMLCanvasElement;
+  let canvasEl = $state<HTMLCanvasElement>();
   const createQrCode = async () => {
     isQrModalOpen = true;
 
@@ -59,23 +50,13 @@
       { width: 300 },
       function (error: any) {
         if (error) console.error(error);
-      }
+      },
     );
   };
-
-  let time: number = 0;
-  $: time = 15 * 60000 - (new Date().getTime() - $roomData.timestamp);
-  $: if (time) startTimer(time / 1000);
-
-  $: !$roomData.timestamp ? (timeRemainingBeforeRoomDeletion = "Deleted") : "";
-
-  onDestroy(() => {
-    if (interval) clearInterval(interval);
-  });
 </script>
 
 <header>
-  <a href="/" on:click={() => ($roomMessages = [])}>
+  <a href="/" onclick={() => ($roomMessages = [])}>
     <h1 class="sans cursor-pointer">ChatRooms</h1>
   </a>
   <div class="flex items-center gap-3 lg:gap-5">
@@ -86,7 +67,7 @@
     <button
       aria-label="view qr code"
       class="btn-secondary !px-2"
-      on:click={createQrCode}
+      onclick={createQrCode}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -103,7 +84,7 @@
     <button
       aria-label="copy room id"
       class="btn-secondary group"
-      on:click={copyText}
+      onclick={copyText}
     >
       {#each (roomId || "").split("") as letter}
         <span class="letter">
@@ -115,7 +96,7 @@
     <button
       aria-label="delete room"
       title="delete room"
-      on:click={handleDeleteRoom}
+      onclick={handleDeleteRoom}
       class="delete-btn"
     >
       <Dustbin />
@@ -125,6 +106,6 @@
 
 {#if isQrModalOpen}
   <Modal onClose={() => (isQrModalOpen = false)}>
-    <canvas class="w-full" bind:this={canvasEl} />
+    <canvas class="w-full" bind:this={canvasEl}></canvas>
   </Modal>
 {/if}
