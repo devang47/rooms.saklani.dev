@@ -5,31 +5,36 @@ import {
   getDownloadURL,
   getStorage,
 } from "firebase/storage";
-import { app } from "../utils/config";
+import { app, ensureSignedIn } from "../utils/config";
 import { addNotification } from "../utils/notifications";
-import CryptoJS from "crypto-js";
+import { deriveRoom } from "./crypt";
 import { gsap } from "gsap";
 
-export const uploadFile = (roomId: string, file: any) =>
-  new Promise((resolve, reject) => {
-    const cryptedKey = CryptoJS.SHA512(roomId).toString(CryptoJS.enc.Hex);
+// Keep in sync with the limit in storage.rules.
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
 
+export const uploadFile = async (roomId: string, file: File) => {
+  if (file.size > MAX_FILE_BYTES) {
+    addNotification("File size exceeds 20mb limit!", true);
+    throw new Error("File too large");
+  }
+
+  const { id } = await deriveRoom(roomId);
+  await ensureSignedIn();
+
+  return new Promise((resolve, reject) => {
     const storage = getStorage(app);
-    const storageRef = ref(storage, cryptedKey + "/" + file.name);
+    // The UUID stops two files with the same name from colliding, because the
+    // storage rules don't allow overwrites.
+    const storageRef = ref(
+      storage,
+      `${id}/${crypto.randomUUID()}-${file.name}`,
+    );
 
     const uploadTask = uploadBytesResumable(storageRef, file);
     uploadTask.on(
       "state_changed",
       (snapshot) => {
-        if (snapshot.totalBytes > 204857600) {
-          uploadTask.cancel();
-          loading.set(false);
-          loadingUpload.set(false);
-
-          addNotification("File size exceeds 20mb limit!", true);
-          return;
-        }
-
         const progress =
           (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
 
@@ -52,6 +57,7 @@ export const uploadFile = (roomId: string, file: any) =>
       },
     );
   });
+};
 
 export const minifyURL = async (e: string) =>
   new Promise((resolve, reject) => {

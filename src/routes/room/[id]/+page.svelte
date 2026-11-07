@@ -68,7 +68,14 @@ const handleAddMsg = async () => {
 
   let msg = chatInput;
   chatInput = "";
-  await addMessage({ roomId, message: msg });
+  try {
+    await addMessage({ roomId, message: msg });
+  } catch (error) {
+    console.log(error);
+    chatInput = msg;
+    addNotification("Message not sent. The room may have expired.", true);
+    return;
+  }
   scrollToBottom();
   if (innerWidth > 640) {
     chatInputBox.focus();
@@ -85,8 +92,8 @@ const handleInputChange = async (e: any) => {
       if (chatInput.trim()) return (chatInput += " " + url);
       chatInput += url;
     } catch (error) {
+      // uploadFile has already shown the reason.
       console.log(error);
-      addNotification("Failed to upload file");
     }
     $loading = false;
     $loadingUpload = false;

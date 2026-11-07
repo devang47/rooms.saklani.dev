@@ -10,8 +10,8 @@ and files
 - ✅ Connect Multiple devices concurrently
 - ✅ Messages history
 - ✅ Auto delete all data after 15min
-- ✅ Secure
-- ❌ End to end encrypted
+- ✅ Messages encrypted with a key derived from the room code
+- ❌ End to end encrypted (anyone with the 6-character code can read the room, and files are not encrypted)
 
 WebRTC based Chatrooms
 - ✅ Uses WebRTC to transfer messages
@@ -29,7 +29,6 @@ and files
 - [Firebase & Firestore](https://firebase.google.com/)
 - [Gsap](https://greensock.com/)
 - [Vercel](https://vercel.com/) for Frontend
-- [Firebase Functions](https://firebase.google.com/) for Backend
-- [Cron Job](https://cron-job.org/en/)
+- [Firebase Functions](https://firebase.google.com/) for scheduled room cleanup
 - [WebRTC](https://webrtc.org/)
 - [Peer.js](https://github.com/peers/peerjs)

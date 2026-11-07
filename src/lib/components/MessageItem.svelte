@@ -1,38 +1,34 @@
 <script lang="ts">
 import { onMount } from "svelte";
-import CryptoJS from "crypto-js";
-import { decrypt } from "$helpers/crypt";
+import { decrypt, deriveRoom } from "$helpers/crypt";
 import { addNotification } from "$utils/notifications";
 import { scale } from "svelte/transition";
 import CopyIcon from "$lib/icons/CopyIcon.svelte";
-import { connectionState } from "$stores";
+import { connectionState, user } from "$stores";
 
 export let messageData: RelayMessage;
 export let roomId = "";
 export let encrypted = false;
 export let showMetadata = false;
 
-let sameDevice = false;
 let message = "";
+
+$: sameDevice = encrypted
+  ? messageData.device === $user?.uid
+  : messageData.deviceId === $connectionState.id;
 
 onMount(async () => {
   if (!encrypted) {
     message = messageData.data;
-    sameDevice = messageData.deviceId === $connectionState.id;
     return;
   }
 
-  const currentDeviceDetails = CryptoJS.SHA256(navigator.userAgent).toString(
-    CryptoJS.enc.Hex,
-  );
-
-  if (currentDeviceDetails === messageData.device) {
-    sameDevice = true;
+  try {
+    const { key } = await deriveRoom(roomId);
+    message = await decrypt(key, messageData.data);
+  } catch {
+    message = "Unable to decrypt this message";
   }
-
-  const cryptedKey = CryptoJS.SHA512(roomId).toString(CryptoJS.enc.Hex);
-
-  message = decrypt(cryptedKey, messageData.data);
 });
 
 let done = false;

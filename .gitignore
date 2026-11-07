@@ -6,3 +6,4 @@ node_modules
 wrangler.toml
 .vercel
 yarn-error.log
+*-debug.log

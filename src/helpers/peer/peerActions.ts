@@ -35,7 +35,7 @@ export const startPeer = async () => {
         removeConnectionList(peerId);
       });
       PeerConnection.onConnectionReceiveData(peerId, (data) => {
-        handleReceiveData(data, id);
+        handleReceiveData(data, peerId);
       });
     });
 

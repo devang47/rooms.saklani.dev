@@ -1,8 +1,19 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read, write: if request.auth!=null;
+    // Anything not matched below is denied.
+    match /{roomId}/{fileName} {
+      allow get, list: if request.auth != null;
+
+      // Keep the size in sync with MAX_FILE_BYTES in src/helpers/storage.ts.
+      // ponytail: doesn't check the room exists, because that needs a cross-service
+      // IAM grant. Stray uploads last at most one cleanup run past 15 minutes.
+      allow create: if request.auth != null
+        && resource == null
+        && roomId.matches('^[a-f0-9]{64}([a-f0-9]{64})?$')
+        && request.resource.size <= 20 * 1024 * 1024;
+
+      allow delete: if request.auth != null;
     }
   }
 }

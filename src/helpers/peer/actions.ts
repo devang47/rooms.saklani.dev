@@ -83,21 +83,23 @@ export const handleReceiveData = (data: Data, id: string) => {
       switch (data.message) {
         case "Call declined":
         case "Call ended":
-          addNotification("Call closed by " + data.deviceId, false);
+          addNotification("Call closed by " + id, false);
           closeCall();
           break;
         default:
       }
     }
 
+    // Trust the connection's ID, not the sender-supplied deviceId, so a peer
+    // can't write into another conversation.
     relayMessages.update((msgs) => {
-      msgs.set(data.deviceId, [
-        ...(msgs.get(data.deviceId) ?? []),
+      msgs.set(id, [
+        ...(msgs.get(id) ?? []),
         {
           data: data.message ?? "",
-          deviceId: data.deviceId,
+          deviceId: id,
           timestamp: data.timestamp,
-          device: data.deviceId,
+          device: id,
         },
       ]);
 

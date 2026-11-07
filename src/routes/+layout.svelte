@@ -4,15 +4,14 @@
   import { loading, user } from "$stores";
   import SvelteSeo from "svelte-seo";
   import { onMount } from "svelte";
-  import { signInAnonymously } from "firebase/auth";
   import "$styles/global.scss";
-  import { auth } from "$utils/config";
+  import { ensureSignedIn } from "$utils/config";
   import { addNotification } from "$utils/notifications";
 
   onMount(() => {
-    signInAnonymously(auth)
+    ensureSignedIn()
       .then((authUser) => {
-        user.set(authUser.user);
+        user.set(authUser);
       })
       .catch((error) => {
         const errorMessage = error.message;

@@ -58,13 +58,19 @@ export const PeerConnection = {
         });
 
         peer.on("call", async (call) => {
+          // Only peers the user already accepted can ring them.
+          if (!activeConnectionsMap.has(call.peer)) {
+            call.close();
+            return;
+          }
+
           if (
-            window.confirm("Do you want to accept video call from " + id + "?")
+            window.confirm(
+              "Do you want to accept video call from " + call.peer + "?",
+            )
           ) {
             try {
-              const getUserMedia = navigator.mediaDevices.getUserMedia;
-
-              mediaStream = await getUserMedia({
+              mediaStream = await navigator.mediaDevices.getUserMedia({
                 video: {
                   width: { ideal: 340 },
                   height: { ideal: 340 },
@@ -91,6 +97,7 @@ export const PeerConnection = {
                 closeCall();
               });
             } catch (error) {
+              console.log(error);
               addNotification("Error when trying to call peer", true);
             }
           } else {
@@ -168,6 +175,12 @@ export const PeerConnection = {
     }),
   onIncomingConnection: (callback: (conn: DataConnection) => void) => {
     peer?.on("connection", function (conn) {
+      // A declined peer is never registered, so nothing it sends gets handled.
+      if (!window.confirm("Allow " + conn.peer + " to connect?")) {
+        conn.close();
+        return;
+      }
+
       console.log("Incoming connection: " + conn.peer);
       activeConnectionsMap.set(conn.peer, conn);
       callback(conn);
@@ -226,9 +239,8 @@ export const PeerConnection = {
       throw new Error("Peer hasn't started yet");
     }
 
-    const getUserMedia = navigator.mediaDevices.getUserMedia;
     try {
-      mediaStream = await getUserMedia({
+      mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 340 },
           height: { ideal: 340 },
@@ -256,6 +268,7 @@ export const PeerConnection = {
         closeCall();
       });
     } catch (err) {
+      console.log(err);
       addNotification("Error when trying to call peer", true);
     }
   },

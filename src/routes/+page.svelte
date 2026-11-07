@@ -9,6 +9,7 @@ import Github from "$lib/icons/Github.svelte";
 import FloatingImages from "$lib/sections/FloatingImages.svelte";
 import { loading } from "$stores";
 import { createRoom } from "$helpers/Room";
+import { addNotification } from "$utils/notifications";
 import { onMount } from "svelte";
 import gsap, { Power3 } from "gsap";
 
@@ -28,7 +29,17 @@ const transitionJoinPageStart = (callback: () => void) => {
 
 const handleCreateRoom = async () => {
   formLoading = "true";
-  roomId = await createRoom();
+  try {
+    roomId = await createRoom();
+  } catch (error) {
+    console.log(error);
+    formLoading = "false";
+    addNotification(
+      "Couldn't create the room. Check your connection and device clock.",
+      true,
+    );
+    return;
+  }
   formLoading = "complete";
 
   transitionJoinPageStart(() => {
@@ -121,7 +132,7 @@ onMount(() => {
 
             <li><span>✅</span> Auto delete all data after 15min</li>
 
-            <li><span>✅</span> Secure</li>
+            <li><span>✅</span> Messages encrypted (files are not)</li>
 
             <li><span>❌</span> End to end encrypted</li>
           </ul>
