@@ -1,4 +1,4 @@
-import { analytics, app, ensureSignedIn } from "../utils/config";
+import { app, ensureSignedIn } from "../utils/config";
 import {
   doc,
   addDoc,
@@ -13,26 +13,14 @@ import {
   onSnapshot,
   getDocs,
 } from "firebase/firestore";
-import { logEvent } from "firebase/analytics";
-
-// import {  } from "firebase/firestore/lite";
 
 import { deriveRoom, encrypt, generateRoomCode } from "./crypt";
 import { roomMessages } from "#stores";
-import {
-  connectStorageEmulator,
-  getStorage,
-  listAll,
-  ref,
-  deleteObject,
-} from "firebase/storage";
 
 const db = getFirestore(app);
-const storage = getStorage(app);
 
 if (import.meta.env.VITE_USE_EMULATOR) {
   connectFirestoreEmulator(db, "127.0.0.1", 8080);
-  connectStorageEmulator(storage, "127.0.0.1", 9199);
 }
 
 export const createRoom = async () => {
@@ -43,8 +31,6 @@ export const createRoom = async () => {
   await setDoc(doc(db, "rooms", id), {
     timestamp: new Date().getTime(),
   });
-
-  logEvent(analytics, "room_created");
 
   return roomId;
 };
@@ -64,8 +50,6 @@ export const addMessage = async ({
     timestamp: new Date().getTime(),
     device: user.uid,
   });
-
-  logEvent(analytics, "message_pushed");
 };
 
 export const getRoomMessages = async (
@@ -89,7 +73,6 @@ export const getRoomMessages = async (
 
 export const checkIfRoomExists = async (roomId: string) => {
   const { id } = await deriveRoom(roomId);
-  logEvent(analytics, "check_for_room_existance");
 
   const room = await getDoc(doc(db, "rooms", id));
   return room.exists() ? room.data() : false;
@@ -99,16 +82,8 @@ export const deleteRoom = async (roomId: string) => {
   const { id: cryptedKey } = await deriveRoom(roomId);
   await ensureSignedIn();
 
-  const filesRef = ref(storage, cryptedKey + "/");
-  const files = await listAll(filesRef);
-
-  files.items.forEach(async (e) => {
-    // @ts-ignore
-    let path = e._location.path;
-
-    const filesRef = ref(storage, path);
-    await deleteObject(filesRef);
-  });
+  const { deleteRoomFiles } = await import("./storage");
+  await deleteRoomFiles(cryptedKey);
 
   const docRef = doc(db, "rooms", cryptedKey);
 
@@ -120,5 +95,4 @@ export const deleteRoom = async (roomId: string) => {
   });
 
   await deleteDoc(docRef);
-  logEvent(analytics, "room_deleted");
 };

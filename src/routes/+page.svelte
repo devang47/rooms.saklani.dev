@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
+  import { goto, preloadCode } from "$app/navigation";
   import Button from "#lib/components/Button.svelte";
   import CircleAnimation from "#lib/components/CircleAnimation.svelte";
   import ArrowRight from "#lib/icons/ArrowRight.svelte";
@@ -7,30 +7,24 @@
   import DashedUnderline from "#lib/icons/DashedUnderline.svelte";
   import Github from "#lib/icons/Github.svelte";
   import FloatingImages from "#lib/sections/FloatingImages.svelte";
-  import { loading } from "#stores";
-  import { createRoom } from "#helpers/Room.ts";
+  import { roomData } from "#stores";
   import { addNotification } from "#utils/notifications.ts";
-  import { onMount } from "svelte";
-  import gsap, { Power3 } from "gsap";
+  import { coverPage } from "#utils/transitions.ts";
 
   let roomId = "";
 
   let formLoading = $state("false");
 
-  const transitionJoinPageStart = (callback: () => void) => {
-    gsap
-      .to(".transition-join-page", {
-        height: "100%",
-        duration: 0.7,
-        ease: Power3.easeOut,
-      })
-      .then(callback);
-  };
+  // Hovering or focusing a button fetches the page behind it, Firebase included.
+  const warmRoom = () => preloadCode("/room/[id]");
+  const warmJoin = () => preloadCode("/room");
 
   const handleCreateRoom = async () => {
     formLoading = "true";
     try {
+      const { createRoom } = await import("#helpers/Room.ts");
       roomId = await createRoom();
+      $roomData = { timestamp: Date.now() };
     } catch (error) {
       console.log(error);
       formLoading = "false";
@@ -42,46 +36,14 @@
     }
     formLoading = "complete";
 
-    transitionJoinPageStart(() => {
-      setTimeout(() => {
-        $loading = true;
-        goto(`/room/${roomId}`);
-      }, 100);
-    });
+    await coverPage();
+    goto(`/room/${roomId}`);
   };
 
-  const handleGotoJoinPage = () => {
-    transitionJoinPageStart(() => {
-      setTimeout(() => {
-        goto("/room");
-      }, 100);
-    });
+  const handleGotoJoinPage = async () => {
+    await coverPage();
+    goto("/room");
   };
-
-  onMount(() => {
-    loading.set(false);
-
-    const tl = gsap.timeline({});
-
-    tl.to(".bg", {
-      delay: 0.2,
-      width: "100%",
-      duration: 1,
-      ease: Power3.easeOut,
-    })
-      .to(".content", {
-        delay: -0.6,
-        opacity: 1,
-        duration: 0.4,
-      })
-      .to(".moveable-block", {
-        delay: -0.7,
-        x: 0,
-        y: 0,
-        opacity: 1,
-        duration: 0.4,
-      });
-  });
 </script>
 
 <FloatingImages />
@@ -92,7 +54,7 @@
   <div
     class="relative z-[1] mx-auto mb-5 flex h-full min-h-[600px] w-full flex-col items-center justify-center rounded-[30px] px-6 py-20 pb-10 font-mono md:rounded-[40px] md:py-4"
   >
-    <div class="content opacity-0">
+    <div class="content">
       <div class="relative mx-auto w-fit">
         <h1
           class="sans relative text-[40px] font-bold text-white text-opacity-90 sm:text-[55px] md:text-[70px] lg:text-[80px]"
@@ -141,6 +103,8 @@
             label="create a room"
             class="relative z-20 mt-5 w-[175px] text-sm md:w-[189px]"
             onclick={handleCreateRoom}
+            onpointerenter={warmRoom}
+            onfocus={warmRoom}
           >
             {#if formLoading === "true"}
               <CircleAnimation class="w-[80px]" />
@@ -157,6 +121,8 @@
               aria-label="Join existing room"
               title="Join existing room"
               onclick={handleGotoJoinPage}
+              onpointerenter={warmJoin}
+              onfocus={warmJoin}
               class=""
             >
               Join room

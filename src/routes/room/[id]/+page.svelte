@@ -14,7 +14,7 @@
     deleteRoom,
     getRoomMessages,
   } from "#helpers/Room.ts";
-  import { uploadFile } from "#helpers/storage.ts";
+  import { ensureSignedIn } from "#utils/config.ts";
   import { onMount } from "svelte";
 
   const roomId = (page.params.id ?? "").toUpperCase();
@@ -23,17 +23,10 @@
   let chatInputBox = $state<HTMLTextAreaElement>();
   let uploadFileInput = $state<HTMLInputElement>();
 
-  onMount(async () => {
-    $roomData = await checkIfRoomExists(roomId);
-    if (!$roomData) {
-      $roomMessages = [];
-      addNotification("Room doesn't exists", true);
-      goto("/");
-    } else {
-      await getRoomMessages(roomId, scrollToBottom);
-      loading.set(false);
-    }
+  // Coming from create or join, the room is already known, so show it right away.
+  if (!$roomData) $loading = true;
 
+  onMount(async () => {
     chatInputBox!.addEventListener("keypress", (e) => {
       if (innerWidth < 640) return;
 
@@ -48,6 +41,19 @@
     });
 
     window.addEventListener("keypress", focusOnInput);
+
+    // Marks which messages are this user's.
+    ensureSignedIn().catch((error) => addNotification(error.message, true));
+
+    $roomData = await checkIfRoomExists(roomId);
+    if (!$roomData) {
+      $roomMessages = [];
+      addNotification("Room doesn't exists", true);
+      await goto("/");
+    } else {
+      await getRoomMessages(roomId, scrollToBottom);
+    }
+    $loading = false;
   });
 
   const focusOnInput = (e: KeyboardEvent) => {
@@ -83,6 +89,7 @@
       $loading = true;
       $loadingUpload = true;
       try {
+        const { uploadFile } = await import("#helpers/storage.ts");
         let url = await uploadFile(roomId, e.target.files[0]);
 
         if (chatInput.trim()) return (chatInput += " " + url);
@@ -100,7 +107,8 @@
     $loading = true;
     await deleteRoom(roomId);
     $roomMessages = [];
-    goto("/");
+    await goto("/");
+    $loading = false;
   };
 
   const scrollToBottom = () => {

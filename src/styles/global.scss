@@ -3,15 +3,45 @@
 @tailwind base;
 @tailwind components;
 
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap");
-
 @font-face {
   font-family: "RegulatorNovaBold";
   font-style: normal;
-  src:
-    local("RegulatorNovaBold"),
-    local("RegulatorNovaBold"),
-    url("/fonts/RegulatorNovaBold.woff2") format("woff2");
+  font-display: swap;
+  src: url("/fonts/RegulatorNovaBold.woff2") format("woff2");
+}
+
+:root {
+  --room-bg: url("/images/grain-dark.webp"), url("/images/bg-1280.webp");
+
+  @media (max-width: 640px) {
+    --room-bg: url("/images/grain-dark.webp"), url("/images/bg-640.webp");
+  }
+}
+
+@keyframes reveal {
+  from {
+    clip-path: inset(0 50% round 30px);
+  }
+  to {
+    clip-path: inset(0 0 round 30px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.content {
+  animation: fade-in 0.3s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content,
+  .bg {
+    animation-duration: 1ms !important;
+  }
 }
 
 .sans {
@@ -41,7 +71,7 @@ body {
 }
 
 body {
-  font-family: "JetBrains Mono", monospace;
+  font-family: "JetBrains Mono Variable", monospace;
 }
 
 .transition-join-page {
@@ -56,5 +86,21 @@ button {
 @include meta.load-css("join");
 @include meta.load-css("chat");
 @include meta.load-css("button");
+
+// The base image has no noise, so it stays small; the tile adds the grain back.
+section.homepage .bg,
+section.join-room-page .container .bg,
+section.chat-ui {
+  background-image: var(--room-bg);
+  background-size: 256px, cover;
+  background-position:
+    0 0,
+    center;
+}
+
+section.homepage .bg,
+section.join-room-page .container .bg {
+  animation: reveal 0.5s cubic-bezier(0.25, 1, 0.5, 1) backwards;
+}
 
 @tailwind utilities;

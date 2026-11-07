@@ -7,12 +7,15 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
   const peerServer =
     `${env.VITE_PEERJS_HOST}:${env.VITE_PEERJS_PORT}` as `${string}.${string}`;
-  const authDomain = env.VITE_AUTH_DOMAIN as `${string}.${string}`;
 
   return {
+    // Small fonts would otherwise become data: URLs, which the CSP blocks.
+    build: { assetsInlineLimit: 0 },
     plugins: [
       sveltekit({
         preprocess: vitePreprocess(),
+        // Small enough that inlining beats a render-blocking request.
+        inlineStyleThreshold: 40 * 1024,
         // /room/[id] can't be prerendered, so it uses the fallback page.
         adapter: adapter({ fallback: "200.html" }),
         csp: {
@@ -22,35 +25,14 @@ export default defineConfig(({ mode }) => {
             "base-uri": ["self"],
             "form-action": ["self"],
             "object-src": ["none"],
-            // gtag and gapi come from Firebase Analytics and Firebase Auth.
-            "script-src": [
-              "self",
-              "https://www.googletagmanager.com",
-              "https://apis.google.com",
-            ],
+            "script-src": ["self"],
             // Svelte transitions and style attributes need inline styles.
-            "style-src": [
-              "self",
-              "unsafe-inline",
-              "https://fonts.googleapis.com",
-            ],
-            "font-src": ["self", "https://fonts.gstatic.com"],
-            "img-src": [
-              "self",
-              "data:",
-              "https://res.cloudinary.com",
-              "https://www.google.com",
-              "https://*.google-analytics.com",
-              "https://*.googletagmanager.com",
-            ],
-            "frame-src": [`https://${authDomain}`],
+            "style-src": ["self", "unsafe-inline"],
+            "font-src": ["self"],
+            "img-src": ["self", "data:"],
             "connect-src": [
               "self",
               "https://*.googleapis.com",
-              "https://www.google.com",
-              "https://*.google-analytics.com",
-              "https://*.analytics.google.com",
-              "https://*.googletagmanager.com",
               `https://${peerServer}`,
               `wss://${peerServer}`,
               ...(env.VITE_USE_EMULATOR

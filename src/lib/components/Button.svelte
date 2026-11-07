@@ -11,13 +11,13 @@
     type = "button",
     label = "default label",
     class: className = "",
-    onclick,
     children,
+    ...rest
   }: Props = $props();
 </script>
 
 <button
-  {onclick}
+  {...rest}
   aria-label={label}
   class:error
   {type}

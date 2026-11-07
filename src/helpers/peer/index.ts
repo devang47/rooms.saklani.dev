@@ -1,11 +1,11 @@
-import Peer, {
-  type DataConnection,
-  type MediaConnection,
+import type {
+  default as Peer,
+  DataConnection,
+  MediaConnection,
   PeerErrorType,
   PeerError,
 } from "peerjs";
 import { addNotification } from "../../utils/notifications";
-import { generateRandomName } from "#utils/index.ts";
 import { get } from "svelte/store";
 import {
   connectionState,
@@ -42,11 +42,15 @@ let mediaStream: MediaStream | undefined;
 
 export const PeerConnection = {
   getPeer: () => peer,
-  startPeerSession: () =>
-    new Promise<string>((resolve, reject) => {
+  startPeerSession: async () => {
+    const [{ default: PeerClient }, { generateRandomName }] = await Promise.all(
+      [import("peerjs"), import("#utils/index.ts")],
+    );
+
+    return new Promise<string>((resolve, reject) => {
       try {
         const id = generateRandomName();
-        peer = new Peer(id, {
+        peer = new PeerClient(id, {
           host: import.meta.env.VITE_PEERJS_HOST,
           port: import.meta.env.VITE_PEERJS_PORT,
           secure: true,
@@ -115,7 +119,8 @@ export const PeerConnection = {
         console.log(err);
         reject(err);
       }
-    }),
+    });
+  },
   closePeerSession: () =>
     new Promise<void>((resolve, reject) => {
       try {

@@ -1,28 +1,15 @@
 <script lang="ts">
   import Notifications from "#lib/sections/Notifications.svelte";
   import LoadingScreen from "#lib/sections/LoadingScreen.svelte";
-  import { loading, user } from "#stores";
-  import SvelteSeo from "svelte-seo";
-  import { onMount } from "svelte";
+  import { loading } from "#stores";
+  import "@fontsource-variable/jetbrains-mono/wght.css";
+  import jetbrainsMono from "@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2?url";
   import "#styles/global.scss";
-  import { ensureSignedIn } from "#utils/config.ts";
-  import { addNotification } from "#utils/notifications.ts";
   interface Props {
     children?: import("svelte").Snippet;
   }
 
   let { children }: Props = $props();
-
-  onMount(() => {
-    ensureSignedIn()
-      .then((authUser) => {
-        user.set(authUser);
-      })
-      .catch((error) => {
-        const errorMessage = error.message;
-        addNotification(errorMessage, true);
-      });
-  });
 </script>
 
 {#if $loading}
@@ -33,29 +20,43 @@
 
 {@render children?.()}
 
-<SvelteSeo
-  title="Chat Rooms | Devang Saklani"
-  description="At rooms.saklani.dev you can create a private chat room and share data across multiple devices, the chat room will automatically delete after 15min.."
-  openGraph={{
-    type: "website",
-    title: "Chat Rooms | Devang Saklani",
-    description:
-      "At rooms.saklani.dev you can create a private chat room and share data across multiple devices, the chat room will automatically delete after 15min.",
-    url: "https://saklani.dev",
-    images: [
-      {
-        url: "https://res.cloudinary.com/dyn3sdtfm/image/upload/v1663470958/og1_l965qv.webp",
-      },
-    ],
-  }}
-  twitter={{
-    card: "summary_large_image",
-    site: "@devangsaklani",
-    title: "Devang Saklani | Software Engineer",
-    description:
-      "At rooms.saklani.dev you can create a private chat room and share data across multiple devices, the chat room will automatically delete after 15min.",
-    image:
-      "https://res.cloudinary.com/dyn3sdtfm/image/upload/v1663470958/og1_l965qv.webp",
-    imageAlt: "Devang Saklani | Software Engineer",
-  }}
-/>
+<svelte:head>
+  <link
+    rel="preload"
+    href={jetbrainsMono}
+    as="font"
+    type="font/woff2"
+    crossorigin="anonymous"
+  />
+
+  <title>Chat Rooms | Devang Saklani</title>
+  <meta
+    name="description"
+    content="At rooms.saklani.dev you can create a private chat room and share data across multiple devices, the chat room will automatically delete after 15min.."
+  />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Chat Rooms | Devang Saklani" />
+  <meta
+    property="og:description"
+    content="At rooms.saklani.dev you can create a private chat room and share data across multiple devices, the chat room will automatically delete after 15min."
+  />
+  <meta property="og:url" content="https://saklani.dev" />
+  <meta
+    property="og:image"
+    content="https://res.cloudinary.com/dyn3sdtfm/image/upload/v1663470958/og1_l965qv.webp"
+  />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@devangsaklani" />
+  <meta name="twitter:title" content="Devang Saklani | Software Engineer" />
+  <meta
+    name="twitter:description"
+    content="At rooms.saklani.dev you can create a private chat room and share data across multiple devices, the chat room will automatically delete after 15min."
+  />
+  <meta
+    name="twitter:image"
+    content="https://res.cloudinary.com/dyn3sdtfm/image/upload/v1663470958/og1_l965qv.webp"
+  />
+  <meta name="twitter:image:alt" content="Devang Saklani | Software Engineer" />
+</svelte:head>

@@ -1,7 +1,6 @@
 import { connectionState, initialState, loading, relayMessages } from "#stores";
 import { addNotification } from "#utils/notifications.ts";
 import { closeCall, DataType, PeerConnection, type Data } from ".";
-import download from "js-file-download";
 
 export const startPeerSession = (id: string) => {
   connectionState.update((state) => {
@@ -76,7 +75,13 @@ export const handleReceiveData = (data: Data, id: string) => {
       )
     ) {
       addNotification("Receiving file " + data.fileName + " from " + id);
-      download(data.file || "", data.fileName || "fileName", data.fileType);
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(
+        new Blob([data.file ?? ""], { type: data.fileType }),
+      );
+      link.download = data.fileName || "fileName";
+      link.click();
+      URL.revokeObjectURL(link.href);
     }
   } else {
     if (data.dataType === DataType.SYSTEM) {

@@ -25,7 +25,7 @@
       ]
     },
     {
-      "source": "/_app/immutable/(.*)",
+      "source": "/(_app/immutable|fonts|images)/(.*)",
       "headers": [
         {
           "key": "Cache-Control",

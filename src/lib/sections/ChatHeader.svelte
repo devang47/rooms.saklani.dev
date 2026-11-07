@@ -1,5 +1,4 @@
 <script lang="ts">
-  import QRCode from "qrcode";
   import Dustbin from "#lib/icons/Dustbin.svelte";
   import { roomData, roomMessages } from "#stores";
   import { addNotification } from "#utils/notifications.ts";
@@ -42,10 +41,10 @@
   const createQrCode = async () => {
     isQrModalOpen = true;
 
-    await tick();
+    const [{ default: QRCode }] = await Promise.all([import("qrcode"), tick()]);
 
     QRCode.toCanvas(
-      canvasEl,
+      canvasEl!,
       `https://rooms.saklani.dev/room/${roomId ?? ""}`,
       { width: 300 },
       function (error: any) {

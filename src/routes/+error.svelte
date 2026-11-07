@@ -1,8 +1,5 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import { loading } from "#stores";
-
-  loading.set(false);
 </script>
 
 <h1>{page.status}</h1>

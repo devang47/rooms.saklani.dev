@@ -3,11 +3,9 @@
     connectionState,
     currentUserVideoRef,
     videoCallDialogOpen,
-    loading,
     remoteUserVideoRef,
   } from "#stores";
   import { addNotification } from "#utils/notifications.ts";
-  import { onMount } from "svelte";
   import ChatHeaderWebrtc from "#lib/sections/ChatHeaderWebrtc.svelte";
   import { connectPeer, selectConnection } from "#helpers/peer/actions.ts";
   import StartServerScreen from "#lib/sections/rtc/StartServerScreen.svelte";
@@ -18,10 +16,6 @@
     sendSystemMessage,
   } from "#helpers/peer/index.ts";
   import { clickOutside } from "#lib/hooks/useClickOutside.ts";
-
-  onMount(() => {
-    loading.set(false);
-  });
 
   let newConnectionIdInput = $state("");
 

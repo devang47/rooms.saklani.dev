@@ -8,6 +8,6 @@
   }
 
   .loading-bar-width {
-    @apply h-full w-0 bg-gray-600;
+    @apply h-full w-0 bg-gray-600 transition-[width] duration-300 ease-out;
   }
 </style>

@@ -1,14 +1,22 @@
 import { loading, loadingUpload } from "#stores";
 import {
-  ref,
-  uploadBytesResumable,
+  connectStorageEmulator,
+  deleteObject,
   getDownloadURL,
   getStorage,
+  listAll,
+  ref,
+  uploadBytesResumable,
 } from "firebase/storage";
 import { app, ensureSignedIn } from "../utils/config";
 import { addNotification } from "../utils/notifications";
 import { deriveRoom } from "./crypt";
-import { gsap } from "gsap";
+
+const storage = getStorage(app);
+
+if (import.meta.env.VITE_USE_EMULATOR) {
+  connectStorageEmulator(storage, "127.0.0.1", 9199);
+}
 
 // Keep in sync with the limit in storage.rules.
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
@@ -23,7 +31,6 @@ export const uploadFile = async (roomId: string, file: File) => {
   await ensureSignedIn();
 
   return new Promise((resolve, reject) => {
-    const storage = getStorage(app);
     // The UUID stops two files with the same name from colliding, because the
     // storage rules don't allow overwrites.
     const storageRef = ref(
@@ -38,9 +45,8 @@ export const uploadFile = async (roomId: string, file: File) => {
         const progress =
           (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
 
-        gsap.to(".loading-bar-width", {
-          width: Math.max(progress, 30) + "%",
-        });
+        const bar = document.querySelector<HTMLElement>(".loading-bar-width");
+        if (bar) bar.style.width = Math.max(progress, 30) + "%";
       },
       (error) => {
         loading.set(false);
@@ -57,4 +63,9 @@ export const uploadFile = async (roomId: string, file: File) => {
       },
     );
   });
+};
+
+export const deleteRoomFiles = async (id: string) => {
+  const files = await listAll(ref(storage, id + "/"));
+  await Promise.all(files.items.map(deleteObject));
 };
