@@ -5,9 +5,9 @@
   export let onClose: () => void;
 </script>
 
-<section transition:fade={{ duration: 200 }}>
+<section transition:fade|global={{ duration: 200 }}>
   <div
-    transition:scale={{ start: 0.9, opacity: 0, duration: 200 }}
+    transition:scale|global={{ start: 0.9, opacity: 0, duration: 200 }}
     use:clickOutside={onClose}
     class="modal"
   >

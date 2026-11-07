@@ -130,7 +130,7 @@ const handleGotoCreatePage = () => {
             {#if formLoading === "true"}
               <CircleAnimation class="w-[80px]" />
             {:else if !roomExists}
-              <span in:fly={{ y: 12 }}> Not Found </span>
+              <span in:fly|global={{ y: 12 }}> Not Found </span>
             {/if}
 
             <span

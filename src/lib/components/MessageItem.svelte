@@ -45,7 +45,7 @@ const copyText = () => {
 
 <div
   class="message-item"
-  transition:scale={{ start: 0.9, opacity: 0.8 }}
+  transition:scale|global={{ start: 0.9, opacity: 0.8 }}
   class:right-aligned={sameDevice}
   class:left-aligned={!sameDevice}
 >

@@ -2,7 +2,7 @@
   import { fly } from "svelte/transition";
 </script>
 
-<div class="spinner text-dark {$$props.class}" in:fly={{ y: -24 }}>
+<div class="spinner text-dark {$$props.class}" in:fly|global={{ y: -24 }}>
   <div class="bounce1" />
   <div class="bounce2" />
   <div class="bounce3" />
