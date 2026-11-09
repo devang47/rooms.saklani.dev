@@ -8,10 +8,11 @@
   interface Props {
     roomId: string;
     remaining: string;
+    urgent?: boolean;
     handleDeleteRoom: () => void;
   }
 
-  let { roomId, remaining, handleDeleteRoom }: Props = $props();
+  let { roomId, remaining, urgent = false, handleDeleteRoom }: Props = $props();
 
   const copyText = () => {
     navigator.clipboard.writeText(roomId);
@@ -44,7 +45,8 @@
   </a>
   <div class="flex items-center gap-3 lg:gap-5">
     <div
-      class="text-[13px] tabular-nums text-light sm:text-[15px]"
+      class="text-[13px] tabular-nums text-light transition-colors duration-300 sm:text-[15px]"
+      class:!text-red-300={urgent}
       title="Time until this room is deleted"
     >
       {remaining}

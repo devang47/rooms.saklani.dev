@@ -14,7 +14,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 
-import { deriveRoom, encrypt, generateRoomCode } from "./crypt";
+import { decrypt, deriveRoom, encrypt, generateRoomCode } from "./crypt";
 import { roomMessages } from "#stores";
 
 const db = getFirestore(app);
@@ -54,20 +54,44 @@ export const addMessage = async ({
 
 export const getRoomMessages = async (
   roomId: string,
-  scrollToBottom: () => void,
+  onUpdate: (first: boolean) => void,
 ) => {
-  const { id } = await deriveRoom(roomId);
+  const { id, key } = await deriveRoom(roomId);
 
   const dataCollection = collection(db, "rooms", id, "data");
 
   const dataQuery = query(dataCollection, orderBy("timestamp"));
 
-  return onSnapshot(dataQuery, (snapshot) => {
-    roomMessages.set(snapshot.docs.map((doc) => doc.data()) || []);
+  // Messages are decrypted before they render, so each bubble appears at its
+  // final size, and each message is decrypted only once.
+  const plaintext = new Map<string, Promise<string>>();
+  const read = (docId: string, ciphertext: string) => {
+    if (!plaintext.has(docId)) {
+      plaintext.set(
+        docId,
+        decrypt(key, ciphertext).catch(() => "Unable to decrypt this message"),
+      );
+    }
+    return plaintext.get(docId)!;
+  };
 
-    setTimeout(() => {
-      scrollToBottom();
-    }, 100);
+  let first = true;
+  let latest = 0;
+  return onSnapshot(dataQuery, async (snapshot) => {
+    const version = ++latest;
+    const messages = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        return { ...data, data: await read(doc.id, data.data) };
+      }),
+    );
+    // A newer snapshot may have finished first; never go back to an older one.
+    if (version !== latest) return;
+    roomMessages.set(messages);
+    const isFirst = first;
+    first = false;
+    // Lets the new messages render before the page measures or scrolls.
+    setTimeout(() => onUpdate(isFirst), 50);
   });
 };
 

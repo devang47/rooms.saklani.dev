@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { easeOut, reduceMotion } from "#utils/motion.ts";
   import { roomData } from "#stores";
   import Button from "#lib/components/Button.svelte";
   import CircleAnimation from "#lib/components/CircleAnimation.svelte";
@@ -102,7 +103,15 @@
             {#if formLoading === "true"}
               <CircleAnimation class="w-[80px]" />
             {:else if !roomExists}
-              <span in:fly|global={{ y: 12 }}> Not Found </span>
+              <span
+                in:fly|global={{
+                  y: reduceMotion ? 0 : 12,
+                  duration: 200,
+                  easing: easeOut,
+                }}
+              >
+                Not Found
+              </span>
             {/if}
 
             <span

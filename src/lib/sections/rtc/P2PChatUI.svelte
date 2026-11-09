@@ -103,6 +103,14 @@
     }
   };
 
+  // Switching conversation shows its history at once; only new items animate.
+  let ready = $state(false);
+  $effect(() => {
+    void $connectionState.selectedId;
+    ready = false;
+    tick().then(() => (ready = true));
+  });
+
   const messages = $derived(
     $relayMessages.get($connectionState.selectedId ?? "") ?? [],
   );
@@ -122,9 +130,9 @@
     {:else}
       {#each messages as item}
         {#if item.fileId && $transfers[item.fileId]}
-          <FileCard transfer={$transfers[item.fileId]} />
+          <FileCard enter={ready} transfer={$transfers[item.fileId]} />
         {:else}
-          <MessageItem showMetadata roomId={item.deviceId} messageData={item} />
+          <MessageItem showMetadata enter={ready} messageData={item} />
         {/if}
       {/each}
     {/if}
@@ -146,7 +154,7 @@
     onkeydown={handleKeydown}></textarea>
   <div class="flex flex-col gap-4">
     <button
-      class="w-full rounded-md bg-dark px-4 py-2 text-xs font-bold text-light disabled:cursor-not-allowed"
+      class="press w-full rounded-md bg-dark px-4 py-2 text-xs font-bold text-light disabled:cursor-not-allowed"
       onclick={handleAddMsg}
       disabled={!$connectionState.selectedId}
       aria-label="send message button"

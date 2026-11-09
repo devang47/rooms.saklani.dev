@@ -1,4 +1,6 @@
-export type Part = { text: string } | { href: string; image: boolean };
+export type Part =
+  | { text: string }
+  | { href: string; image: boolean; name?: string };
 
 const LINK = /https?:\/\/[^\s<>"']+/g;
 const IMAGE = /\.(avif|gif|jpe?g|png|webp)$/i;
@@ -12,12 +14,15 @@ export const uploadsPrefix = () =>
       : "https://firebasestorage.googleapis.com"
   }/v0/b/${import.meta.env.VITE_STORAGE_BUCKET}/o/`;
 
-const isUploadedImage = (href: string, prefix: string) => {
-  if (!href.startsWith(prefix)) return false;
+// The file name of one of this app's uploads, without the random prefix
+// added to keep names unique.
+const uploadName = (href: string, prefix: string) => {
+  if (!href.startsWith(prefix)) return;
   try {
-    return IMAGE.test(decodeURIComponent(new URL(href).pathname));
+    const path = decodeURIComponent(new URL(href).pathname);
+    return path.slice(path.lastIndexOf("/") + 1).replace(/^[0-9a-f-]{36}-/, "");
   } catch {
-    return false;
+    return;
   }
 };
 
@@ -29,7 +34,10 @@ export const linkify = (text: string, prefix: string): Part[] => {
     // Trailing punctuation usually ends the sentence, not the link.
     const href = match[0].replace(/[.,!?;:)\]]+$/, "");
     if (match.index > last) parts.push({ text: text.slice(last, match.index) });
-    parts.push({ href, image: isUploadedImage(href, prefix) });
+    const name = uploadName(href, prefix);
+    parts.push(
+      name ? { href, image: IMAGE.test(name), name } : { href, image: false },
+    );
     last = match.index + href.length;
   }
   if (last < text.length) parts.push({ text: text.slice(last) });

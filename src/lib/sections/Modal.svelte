@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { easeOut, reduceMotion } from "#utils/motion.ts";
   import { clickOutside } from "#lib/hooks/useClickOutside.ts";
   import { fade, scale } from "svelte/transition";
 
@@ -10,9 +11,14 @@
   let { onClose, children }: Props = $props();
 </script>
 
-<section transition:fade|global={{ duration: 200 }}>
+<section transition:fade|global={{ duration: 200, easing: easeOut }}>
   <div
-    transition:scale|global={{ start: 0.9, opacity: 0, duration: 200 }}
+    transition:scale|global={{
+      start: reduceMotion ? 1 : 0.95,
+      opacity: 0,
+      duration: 200,
+      easing: easeOut,
+    }}
     use:clickOutside={onClose}
     class="modal"
   >

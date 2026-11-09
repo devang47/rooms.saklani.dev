@@ -11,6 +11,9 @@
 }
 
 :root {
+  // Matches tailwind's ease-out-strong and ease-cubic-ease.
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --room-bg: url("/images/grain-dark.webp"), url("/images/bg-1280.webp");
 
   @media (max-width: 640px) {
@@ -37,10 +40,40 @@
   animation: fade-in 0.3s ease-out both;
 }
 
+// New chat items fade and lift in. Items already there when a chat opens
+// don't get the class, so a long history doesn't animate all at once.
+.enter {
+  transition:
+    opacity 200ms var(--ease-out),
+    translate 200ms var(--ease-out);
+}
+
+@starting-style {
+  .enter {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+// Tactile feedback on buttons that don't have their own transition.
+.press {
+  transition: scale 120ms var(--ease-out);
+
+  &:not(:disabled):active {
+    scale: 0.97;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .content,
   .bg {
     animation-duration: 1ms !important;
+  }
+
+  @starting-style {
+    .enter {
+      translate: 0 0;
+    }
   }
 }
 
@@ -100,7 +133,7 @@ section.chat-ui {
 
 section.homepage .bg,
 section.join-room-page .container .bg {
-  animation: reveal 0.5s cubic-bezier(0.25, 1, 0.5, 1) backwards;
+  animation: reveal 0.5s var(--ease-out) backwards;
 }
 
 @tailwind utilities;

@@ -6,7 +6,13 @@
   import SendIcon from "#lib/icons/SendIcon.svelte";
   import UploadIcon from "#lib/icons/UploadIcon.svelte";
   import ChatHeader from "#lib/sections/ChatHeader.svelte";
-  import { loading, loadingUpload, roomData, roomMessages } from "#stores";
+  import {
+    loading,
+    loadingUpload,
+    roomData,
+    roomMessages,
+    user,
+  } from "#stores";
   import { addNotification } from "#utils/notifications.ts";
   import {
     addMessage,
@@ -18,7 +24,11 @@
   import { onDestroy, onMount } from "svelte";
 
   const roomId = (page.params.id ?? "").toUpperCase();
-  let scrollToElement = $state<HTMLDivElement>();
+  let messagesEl = $state<HTMLDivElement>();
+  // Messages already in the room when it opens appear without animating.
+  let ready = $state(false);
+  let atBottom = true;
+  let unseen = $state(false);
   let chatInput = $state("");
   let chatInputBox = $state<HTMLTextAreaElement>();
   let uploadFileInput = $state<HTMLInputElement>();
@@ -74,7 +84,7 @@
       addNotification("Room doesn't exist", true);
       await goto("/");
     } else {
-      unsubscribe = await getRoomMessages(roomId, scrollToBottom);
+      unsubscribe = await getRoomMessages(roomId, handleUpdate);
     }
     $loading = false;
   });
@@ -111,7 +121,6 @@
       addNotification("Message not sent. The room may have expired.", true);
       return;
     }
-    scrollToBottom();
     if (innerWidth > 640) {
       chatInputBox?.focus();
     }
@@ -163,12 +172,45 @@
     $loading = false;
   };
 
-  const scrollToBottom = () => {
-    if (scrollToElement) {
-      scrollToElement.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    messagesEl?.scrollTo({ top: messagesEl.scrollHeight, behavior });
+    unseen = false;
+  };
+
+  // Only scrolling up unpins, so a smooth scroll to the bottom never does.
+  let lastTop = 0;
+  const handleScroll = () => {
+    if (!messagesEl) return;
+    const { scrollHeight, scrollTop, clientHeight } = messagesEl;
+    if (scrollHeight - scrollTop - clientHeight < 80) {
+      atBottom = true;
+      unseen = false;
+    } else if (scrollTop < lastTop) {
+      atBottom = false;
+    }
+    lastTop = scrollTop;
+  };
+
+  // Keeps the newest message in view while images load and change its height.
+  const stayAtBottom = (list: HTMLElement) => {
+    const observer = new ResizeObserver(() => {
+      if (atBottom) messagesEl?.scrollTo({ top: messagesEl.scrollHeight });
+    });
+    observer.observe(list);
+    return { destroy: () => observer.disconnect() };
+  };
+
+  // Follows new messages only when the reader is already at the bottom, or
+  // sent the message themselves; otherwise it offers a "new messages" button.
+  const handleUpdate = (first: boolean) => {
+    const last = $roomMessages.at(-1);
+    if (first) {
+      scrollToBottom("instant");
+      ready = true;
+    } else if (atBottom || last?.device === $user?.uid) {
+      scrollToBottom();
+    } else {
+      unseen = true;
     }
   };
 </script>
@@ -197,10 +239,19 @@
         Drop to upload
       </div>
     {/if}
-    <ChatHeader {roomId} {remaining} {handleDeleteRoom} />
+    <ChatHeader
+      {roomId}
+      {remaining}
+      urgent={secondsLeft !== null && secondsLeft <= 60}
+      {handleDeleteRoom}
+    />
 
-    <div class="chat-messages-wrapper h-[calc(90vh-65.6px)] pb-[200px]">
-      <div class="messages-wrapper">
+    <div
+      class="chat-messages-wrapper h-[calc(90vh-65.6px)] pb-[200px]"
+      bind:this={messagesEl}
+      onscroll={handleScroll}
+    >
+      <div class="messages-wrapper" use:stayAtBottom>
         {#if !$roomMessages.length}
           <div class="placeholder">
             <SendIcon color="#555E69" />
@@ -228,12 +279,18 @@
           </div>
         {:else}
           {#each $roomMessages as item}
-            <Message encrypted {roomId} messageData={item} />
+            <Message encrypted enter={ready} messageData={item} />
           {/each}
         {/if}
-
-        <div class="scroll-bottom" bind:this={scrollToElement}></div>
       </div>
+
+      <button
+        class="new-messages"
+        data-visible={unseen || undefined}
+        tabindex={unseen ? 0 : -1}
+        aria-hidden={!unseen}
+        onclick={() => scrollToBottom()}>New messages ↓</button
+      >
 
       <div
         class="chat-input absolute bottom-0 left-0 right-0 flex items-start gap-x-4 rounded-b-[30px] bg-gradient-to-t from-light to-transparent px-4 pb-8 sm:px-6 md:gap-x-6 md:rounded-b-[40px] md:px-12"

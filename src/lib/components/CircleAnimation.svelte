@@ -1,10 +1,18 @@
 <script>
+  import { easeOut, reduceMotion } from "#utils/motion.ts";
   import { fly } from "svelte/transition";
   /** @type {{ [key: string]: any }} */
   let { ...props } = $props();
 </script>
 
-<div class="spinner text-dark {props.class}" in:fly|global={{ y: -24 }}>
+<div
+  class="spinner text-dark {props.class}"
+  in:fly|global={{
+    y: reduceMotion ? 0 : -24,
+    duration: 200,
+    easing: easeOut,
+  }}
+>
   <div class="bounce1"></div>
   <div class="bounce2"></div>
   <div class="bounce3"></div>

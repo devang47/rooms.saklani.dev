@@ -116,7 +116,7 @@
               <div class="mt-3 flex items-center gap-4">
                 {#each $connectionState.list as conn}
                   <button
-                    class="rounded-md px-4 py-2 text-center text-sm font-semibold {$connectionState.selectedId ===
+                    class="enter press rounded-md px-4 py-2 text-center text-sm font-semibold {$connectionState.selectedId ===
                     conn
                       ? 'bg-[#555E69] text-light shadow-md'
                       : 'bg-[#555E69]/60 text-light'}"
@@ -139,13 +139,13 @@
 </section>
 
 <section
-  class="fixed left-0 top-0 z-50 flex h-full w-full items-center justify-center bg-black bg-opacity-50 px-4 py-4"
-  class:hidden={!$videoCallDialogOpen}
+  class="call-overlay fixed left-0 top-0 z-50 flex h-full w-full items-center justify-center bg-black bg-opacity-50 px-4 py-4"
+  data-open={$videoCallDialogOpen || undefined}
 >
   <div
     role="dialog"
     aria-label="Video call"
-    class="relative flex w-fit flex-col gap-4 rounded-xl bg-white p-4 max-md:items-center md:h-[calc(340px+5rem)] md:flex-row"
+    class="call-panel relative flex w-fit flex-col gap-4 rounded-xl bg-white p-4 max-md:items-center md:h-[calc(340px+5rem)] md:flex-row"
   >
     <video
       class="rounded-lg bg-neutral-100"
@@ -177,19 +177,19 @@
       class="flex gap-2 md:absolute md:bottom-3 md:left-1/2 md:-translate-x-1/2"
     >
       <button
-        class="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-dark shadow-none hover:bg-neutral-50"
+        class="press rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-dark shadow-none hover:bg-neutral-50"
         aria-pressed={!micOn}
         onclick={() => (micOn = toggleTrack("audio"))}
         >{micOn ? "Mute" : "Unmute"}</button
       >
       <button
-        class="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-dark shadow-none hover:bg-neutral-50"
+        class="press rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-dark shadow-none hover:bg-neutral-50"
         aria-pressed={!cameraOn}
         onclick={() => (cameraOn = toggleTrack("video"))}
         >{cameraOn ? "Camera off" : "Camera on"}</button
       >
       <button
-        class="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 shadow-none hover:bg-red-50"
+        class="press rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 shadow-none hover:bg-red-50"
         onclick={handleCloseVideoCall}>End call</button
       >
     </div>
@@ -197,3 +197,35 @@
 </section>
 
 <Prompts />
+
+<style>
+  /* The call stays mounted so its video elements keep their streams. */
+  .call-overlay {
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity 150ms var(--ease-out),
+      visibility 0s linear 150ms;
+  }
+
+  .call-overlay[data-open] {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 200ms var(--ease-out);
+  }
+
+  .call-panel {
+    scale: 0.96;
+    transition: scale 200ms var(--ease-out);
+  }
+
+  .call-overlay[data-open] .call-panel {
+    scale: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .call-panel {
+      scale: 1;
+    }
+  }
+</style>
