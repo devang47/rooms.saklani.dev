@@ -15,32 +15,55 @@
     getRoomMessages,
   } from "#helpers/Room.ts";
   import { ensureSignedIn } from "#utils/config.ts";
-  import { onMount } from "svelte";
+  import { onDestroy, onMount } from "svelte";
 
   const roomId = (page.params.id ?? "").toUpperCase();
   let scrollToElement = $state<HTMLDivElement>();
   let chatInput = $state("");
   let chatInputBox = $state<HTMLTextAreaElement>();
   let uploadFileInput = $state<HTMLInputElement>();
+  let dragging = $state(false);
+  let unsubscribe: (() => void) | undefined;
+
+  const ROOM_LIFETIME_MS = 15 * 60 * 1000;
+  let now = $state(Date.now());
+  const secondsLeft = $derived(
+    $roomData.timestamp
+      ? Math.max(
+          0,
+          Math.floor((ROOM_LIFETIME_MS - (now - $roomData.timestamp)) / 1000),
+        )
+      : null,
+  );
+  const remaining = $derived.by(() => {
+    // Blank until the room has loaded.
+    if (secondsLeft === null) return "";
+    const pad = (value: number) => String(value).padStart(2, "0");
+    return `${pad(Math.floor(secondsLeft / 60))}:${pad(secondsLeft % 60)}`;
+  });
+
+  let warned = false;
+  let expired = false;
+  $effect(() => {
+    if (secondsLeft === null) return;
+    if (secondsLeft > 0 && secondsLeft <= 60 && !warned) {
+      warned = true;
+      addNotification("This room is deleted in under a minute", true, 5000);
+    }
+    if (secondsLeft === 0 && !expired) {
+      expired = true;
+      addNotification("This room has expired", true, 4000);
+      $roomMessages = [];
+      goto("/");
+    }
+  });
 
   // Coming from create or join, the room is already known, so show it right away.
   if (!$roomData) $loading = true;
 
   onMount(async () => {
-    chatInputBox!.addEventListener("keypress", (e) => {
-      if (innerWidth < 640) return;
-
-      if (e.key === "Enter" && e.shiftKey) {
-        e.preventDefault();
-        chatInput += "\r\n";
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        handleAddMsg();
-      } else if (e.key === "/") {
-      }
-    });
-
-    window.addEventListener("keypress", focusOnInput);
+    const clock = setInterval(() => (now = Date.now()), 1000);
+    onDestroy(() => clearInterval(clock));
 
     // Marks which messages are this user's.
     ensureSignedIn().catch((error) => addNotification(error.message, true));
@@ -48,18 +71,28 @@
     $roomData = await checkIfRoomExists(roomId);
     if (!$roomData) {
       $roomMessages = [];
-      addNotification("Room doesn't exists", true);
+      addNotification("Room doesn't exist", true);
       await goto("/");
     } else {
-      await getRoomMessages(roomId, scrollToBottom);
+      unsubscribe = await getRoomMessages(roomId, scrollToBottom);
     }
     $loading = false;
   });
 
+  onDestroy(() => unsubscribe?.());
+
+  const handleKeydown = (e: KeyboardEvent) => {
+    // On phones Enter adds a new line; the send button sends.
+    if (innerWidth < 640 || e.key !== "Enter" || e.shiftKey) return;
+    e.preventDefault();
+    handleAddMsg();
+  };
+
   const focusOnInput = (e: KeyboardEvent) => {
-    if (innerWidth < 640) return;
+    if (innerWidth < 640 || e.target instanceof HTMLTextAreaElement) return;
 
     if (e.key === "/") {
+      e.preventDefault();
       chatInputBox?.focus();
     }
   };
@@ -84,23 +117,42 @@
     }
   };
 
-  const handleInputChange = async (e: any) => {
-    if (e?.target?.files.length > 0) {
-      $loading = true;
-      $loadingUpload = true;
-      try {
-        const { uploadFile } = await import("#helpers/storage.ts");
-        let url = await uploadFile(roomId, e.target.files[0]);
-
-        if (chatInput.trim()) return (chatInput += " " + url);
-        chatInput += url;
-      } catch (error) {
-        // uploadFile has already shown the reason.
-        console.log(error);
-      }
-      $loading = false;
-      $loadingUpload = false;
+  const upload = async (file: File) => {
+    $loading = true;
+    $loadingUpload = true;
+    try {
+      const { uploadFile } = await import("#helpers/storage.ts");
+      const url = await uploadFile(roomId, file);
+      chatInput = chatInput.trim() ? `${chatInput} ${url}` : `${url}`;
+    } catch (error) {
+      // uploadFile has already shown the reason.
+      console.log(error);
     }
+    $loading = false;
+    $loadingUpload = false;
+  };
+
+  const handleInputChange = (e: Event) => {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (file) upload(file);
+  };
+
+  const handlePaste = (e: ClipboardEvent) => {
+    const file = e.clipboardData?.files[0];
+    if (!file) return;
+    e.preventDefault();
+    upload(file);
+  };
+
+  const hasFiles = (e: DragEvent) => !!e.dataTransfer?.types.includes("Files");
+
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault();
+    dragging = false;
+    const file = e.dataTransfer?.files[0];
+    if (file) upload(file);
   };
 
   const handleDeleteRoom = async () => {
@@ -121,9 +173,31 @@
   };
 </script>
 
+<svelte:window onkeydown={focusOnInput} />
+
 <section class="chat-ui">
-  <div class="container">
-    <ChatHeader {roomId} {handleDeleteRoom} />
+  <div
+    class="container"
+    role="region"
+    aria-label="Chat"
+    ondragover={(e) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      dragging = true;
+    }}
+    ondragleave={(e) => {
+      if (!e.currentTarget.contains(e.relatedTarget as Node)) dragging = false;
+    }}
+    ondrop={handleDrop}
+  >
+    {#if dragging}
+      <div
+        class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-[30px] border-2 border-dashed border-[#7F8691] bg-light/80 font-medium text-dark md:rounded-[40px]"
+      >
+        Drop to upload
+      </div>
+    {/if}
+    <ChatHeader {roomId} {remaining} {handleDeleteRoom} />
 
     <div class="chat-messages-wrapper h-[calc(90vh-65.6px)] pb-[200px]">
       <div class="messages-wrapper">
@@ -172,7 +246,9 @@
           cols="30"
           rows="10"
           bind:this={chatInputBox}
-          bind:value={chatInput}></textarea>
+          bind:value={chatInput}
+          onkeydown={handleKeydown}
+          onpaste={handlePaste}></textarea>
         <div class="buttons flex flex-col gap-2 md:gap-4">
           <button
             onclick={handleAddMsg}

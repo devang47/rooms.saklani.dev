@@ -19,7 +19,7 @@
       "name": "Join existing room",
       "short_name": "Join",
       "description": "Join a private room that already exists.",
-      "url": "/join",
+      "url": "/room",
       "icons": [
         {
           "src": "/favicon/android-chrome-192x192.png",

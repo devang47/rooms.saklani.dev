@@ -62,7 +62,7 @@ export const getRoomMessages = async (
 
   const dataQuery = query(dataCollection, orderBy("timestamp"));
 
-  onSnapshot(dataQuery, (snapshot) => {
+  return onSnapshot(dataQuery, (snapshot) => {
     roomMessages.set(snapshot.docs.map((doc) => doc.data()) || []);
 
     setTimeout(() => {
@@ -90,9 +90,8 @@ export const deleteRoom = async (roomId: string) => {
   const q = query(collection(db, "rooms", cryptedKey, "data"));
   const querySnapshot = await getDocs(q);
 
-  querySnapshot.forEach(async (doData) => {
-    await deleteDoc(doc(db, "rooms", cryptedKey, "data", doData.id));
-  });
-
+  await Promise.all(
+    querySnapshot.docs.map((message) => deleteDoc(message.ref)),
+  );
   await deleteDoc(docRef);
 };

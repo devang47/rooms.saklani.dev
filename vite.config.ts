@@ -22,6 +22,11 @@ export default defineConfig(({ command, mode }) => {
   if (command === "build" && missing.length) {
     throw new Error(`Missing environment variables: ${missing.join(", ")}`);
   }
+
+  // A local signalling server (tests, development) runs without TLS.
+  const peerLocal = /^(localhost|127\.0\.0\.1)$/.test(
+    env.VITE_PEERJS_HOST ?? "",
+  );
   const peerServer =
     `${env.VITE_PEERJS_HOST}:${env.VITE_PEERJS_PORT}` as `${string}.${string}`;
 
@@ -46,12 +51,21 @@ export default defineConfig(({ command, mode }) => {
             // Svelte transitions and style attributes need inline styles.
             "style-src": ["self", "unsafe-inline"],
             "font-src": ["self"],
-            "img-src": ["self", "data:"],
+            // Uploaded images are previewed in the chat.
+            "img-src": [
+              "self",
+              "data:",
+              "blob:",
+              "https://firebasestorage.googleapis.com",
+              ...(env.VITE_USE_EMULATOR
+                ? (["http://127.0.0.1:9199"] as const)
+                : []),
+            ],
             "connect-src": [
               "self",
               "https://*.googleapis.com",
-              `https://${peerServer}`,
-              `wss://${peerServer}`,
+              `${peerLocal ? "http" : "https"}://${peerServer}`,
+              `${peerLocal ? "ws" : "wss"}://${peerServer}`,
               ...(env.VITE_USE_EMULATOR
                 ? ([
                     "http://127.0.0.1:9099",

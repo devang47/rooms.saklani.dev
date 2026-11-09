@@ -192,13 +192,13 @@
             </li>
 
             <li>
-              <span>✅</span> Video calls (coming soon)
+              <span>✅</span> Video calls
             </li>
           </ul>
 
           <a href="/p2p">
             <Button
-              label="create a room"
+              label="Start server"
               class="relative z-20 mt-5 w-[175px] text-sm md:w-[189px]"
             >
               {#if formLoading === "true"}

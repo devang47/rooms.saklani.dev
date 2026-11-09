@@ -33,3 +33,5 @@ export const remoteUserVideoRef = writable<HTMLVideoElement>();
 export const videoCallDialogOpen = writable<boolean>(false);
 
 export const relayMessages = writable<Map<string, RelayMessage[]>>(new Map());
+export const transfers = writable<Record<string, Transfer>>({});
+export const prompts = writable<Prompt[]>([]);

@@ -1,6 +1,7 @@
 import { connectionState, initialState, loading, relayMessages } from "#stores";
 import { addNotification } from "#utils/notifications.ts";
 import { closeCall, DataType, PeerConnection, type Data } from ".";
+import { failTransfers, handleFileData } from "./files";
 
 export const startPeerSession = (id: string) => {
   connectionState.update((state) => {
@@ -55,6 +56,7 @@ export const connectPeer = async (id: string) => {
     await PeerConnection.connectPeer(id);
     PeerConnection.onConnectionDisconnected(id, () => {
       addNotification("Connection closed: " + id, false);
+      failTransfers(id);
       removeConnectionList(id);
     });
     PeerConnection.onConnectionReceiveData(id, (data) => {
@@ -68,22 +70,9 @@ export const connectPeer = async (id: string) => {
 };
 
 export const handleReceiveData = (data: Data, id: string) => {
-  if (data.dataType === DataType.FILE) {
-    if (
-      window.confirm(
-        "Do you want to download file " + data.fileName + " from " + id + "?",
-      )
-    ) {
-      addNotification("Receiving file " + data.fileName + " from " + id);
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(
-        new Blob([data.file ?? ""], { type: data.fileType }),
-      );
-      link.download = data.fileName || "fileName";
-      link.click();
-      URL.revokeObjectURL(link.href);
-    }
-  } else {
+  if (handleFileData(data, id)) return;
+
+  if (data.dataType === DataType.MESSAGE || data.dataType === DataType.SYSTEM) {
     if (data.dataType === DataType.SYSTEM) {
       switch (data.message) {
         case "Call declined":

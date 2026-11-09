@@ -1,16 +1,17 @@
 <script lang="ts">
   import Dustbin from "#lib/icons/Dustbin.svelte";
-  import { roomData, roomMessages } from "#stores";
+  import { roomMessages } from "#stores";
   import { addNotification } from "#utils/notifications.ts";
-  import { onMount, tick } from "svelte";
+  import { tick } from "svelte";
   import Modal from "./Modal.svelte";
 
   interface Props {
     roomId: string;
+    remaining: string;
     handleDeleteRoom: () => void;
   }
 
-  let { roomId, handleDeleteRoom }: Props = $props();
+  let { roomId, remaining, handleDeleteRoom }: Props = $props();
 
   const copyText = () => {
     navigator.clipboard.writeText(roomId);
@@ -19,23 +20,6 @@
   };
 
   let isQrModalOpen = $state(false);
-  let now = $state(Date.now());
-
-  const timeRemainingBeforeRoomDeletion = $derived.by(() => {
-    if (!$roomData.timestamp) return "Deleted";
-
-    const seconds = Math.max(
-      0,
-      Math.floor((15 * 60000 - (now - $roomData.timestamp)) / 1000),
-    );
-    const pad = (value: number) => String(value).padStart(2, "0");
-    return `${pad(Math.floor(seconds / 60))}:${pad(seconds % 60)}`;
-  });
-
-  onMount(() => {
-    const interval = setInterval(() => (now = Date.now()), 1000);
-    return () => clearInterval(interval);
-  });
 
   let canvasEl = $state<HTMLCanvasElement>();
   const createQrCode = async () => {
@@ -45,7 +29,7 @@
 
     QRCode.toCanvas(
       canvasEl!,
-      `https://rooms.saklani.dev/room/${roomId ?? ""}`,
+      `${location.origin}/room/${roomId ?? ""}`,
       { width: 300 },
       function (error: any) {
         if (error) console.error(error);
@@ -59,8 +43,11 @@
     <h1 class="sans cursor-pointer">ChatRooms</h1>
   </a>
   <div class="flex items-center gap-3 lg:gap-5">
-    <div class="text-light text-[15px] hidden sm:block">
-      {timeRemainingBeforeRoomDeletion}
+    <div
+      class="text-[13px] tabular-nums text-light sm:text-[15px]"
+      title="Time until this room is deleted"
+    >
+      {remaining}
     </div>
 
     <button

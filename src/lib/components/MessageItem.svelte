@@ -5,6 +5,7 @@
   import { scale } from "svelte/transition";
   import CopyIcon from "#lib/icons/CopyIcon.svelte";
   import { connectionState, user } from "#stores";
+  import { linkify, uploadsPrefix } from "#utils/format.ts";
 
   interface Props {
     messageData: RelayMessage;
@@ -42,6 +43,14 @@
     }
   });
 
+  const parts = $derived(linkify(message, uploadsPrefix()));
+  const time = $derived(
+    new Date(messageData.timestamp).toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+  );
+
   let done = $state(false);
   const copyText = () => {
     navigator.clipboard.writeText(message);
@@ -56,23 +65,30 @@
   class:right-aligned={sameDevice}
   class:left-aligned={!sameDevice}
 >
-  <p class="w-full font-medium">{message}</p>
+  <p class="w-full font-medium">
+    {#each parts as part}{#if "text" in part}{part.text}{:else if part.image}<a
+          href={part.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          ><img
+            src={part.href}
+            alt="Shared in the room"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            class="my-1 block max-h-64 rounded-lg"
+          /></a
+        >{:else}<a href={part.href} target="_blank" rel="noopener noreferrer"
+          >{part.href}</a
+        >{/if}{/each}
+  </p>
 
-  {#if showMetadata}
-    <div class="mt-2 flex items-center gap-2 text-xs opacity-50">
-      <div class="">
-        {messageData.deviceId}
-      </div>
+  <div class="mt-2 flex items-center gap-2 text-xs opacity-50">
+    {#if showMetadata}
+      <div>{messageData.deviceId}</div>
       |
-      <div class="">
-        {new Date(messageData.timestamp).toLocaleTimeString("en-US", {
-          hour12: true,
-          hour: "numeric",
-          minute: "numeric",
-        })}
-      </div>
-    </div>
-  {/if}
+    {/if}
+    <time datetime={new Date(messageData.timestamp).toISOString()}>{time}</time>
+  </div>
 
   <button
     aria-label="copy text"

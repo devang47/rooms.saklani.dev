@@ -14,8 +14,12 @@
     closeCall,
     PeerConnection,
     sendSystemMessage,
+    toggleTrack,
   } from "#helpers/peer/index.ts";
-  import { clickOutside } from "#lib/hooks/useClickOutside.ts";
+  import { startPeer } from "#helpers/peer/peerActions.ts";
+  import Prompts from "#lib/sections/rtc/Prompts.svelte";
+  import { goto } from "$app/navigation";
+  import { onMount } from "svelte";
 
   let newConnectionIdInput = $state("");
 
@@ -39,6 +43,25 @@
       }
     } else addNotification("Please enter a valid ID", true);
   };
+
+  let micOn = $state(true);
+  let cameraOn = $state(true);
+
+  $effect(() => {
+    if (!$videoCallDialogOpen) micOn = cameraOn = true;
+  });
+
+  // An invite link (/p2p?connect=<id>) starts a session and connects to it.
+  onMount(async () => {
+    const target = new URL(location.href).searchParams.get("connect");
+    if (!target) return;
+    goto("/p2p", { replace: true, reset: false });
+
+    if (!$connectionState.started) await startPeer();
+    if ($connectionState.started && target !== $connectionState.id) {
+      await connectPeer(target.toLowerCase());
+    }
+  });
 
   let innerWidth = $state(0);
 
@@ -120,7 +143,8 @@
   class:hidden={!$videoCallDialogOpen}
 >
   <div
-    use:clickOutside={() => $videoCallDialogOpen && handleCloseVideoCall()}
+    role="dialog"
+    aria-label="Video call"
     class="relative flex w-fit flex-col gap-4 rounded-xl bg-white p-4 max-md:items-center md:h-[calc(340px+5rem)] md:flex-row"
   >
     <video
@@ -128,6 +152,7 @@
       style="height: {videoWidth}px; width: {videoWidth}px;"
       autoplay
       muted
+      playsinline
       width="{videoWidth}px"
       height="{videoWidth}px"
       bind:this={$currentUserVideoRef}
@@ -139,6 +164,7 @@
       class="rounded-lg bg-neutral-100"
       style="height: {videoWidth}px; width: {videoWidth}px;"
       autoplay
+      playsinline
       width="{videoWidth}px"
       height="{videoWidth}px"
       bind:this={$remoteUserVideoRef}
@@ -147,10 +173,27 @@
       <track kind="captions" />
     </video>
 
-    <button
-      class="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 shadow-none hover:bg-red-50 md:absolute md:bottom-3 md:left-1/2 md:-translate-x-1/2"
-      onclick={handleCloseVideoCall}
-      >End Call
-    </button>
+    <div
+      class="flex gap-2 md:absolute md:bottom-3 md:left-1/2 md:-translate-x-1/2"
+    >
+      <button
+        class="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-dark shadow-none hover:bg-neutral-50"
+        aria-pressed={!micOn}
+        onclick={() => (micOn = toggleTrack("audio"))}
+        >{micOn ? "Mute" : "Unmute"}</button
+      >
+      <button
+        class="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-dark shadow-none hover:bg-neutral-50"
+        aria-pressed={!cameraOn}
+        onclick={() => (cameraOn = toggleTrack("video"))}
+        >{cameraOn ? "Camera off" : "Camera on"}</button
+      >
+      <button
+        class="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 shadow-none hover:bg-red-50"
+        onclick={handleCloseVideoCall}>End call</button
+      >
+    </div>
   </div>
 </section>
+
+<Prompts />

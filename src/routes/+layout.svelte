@@ -41,7 +41,7 @@
     property="og:description"
     content="At rooms.saklani.dev you can create a private chat room and share data across multiple devices, the chat room will automatically delete after 15min."
   />
-  <meta property="og:url" content="https://saklani.dev" />
+  <meta property="og:url" content="https://rooms.saklani.dev" />
   <meta
     property="og:image"
     content="https://res.cloudinary.com/dyn3sdtfm/image/upload/v1663470958/og1_l965qv.webp"
