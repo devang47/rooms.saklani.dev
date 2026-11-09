@@ -27,8 +27,7 @@ and files
 - [Sveltekit](https://kit.svelte.dev/)
 - [Tailwind](https://tailwindcss.com/)
 - [Firebase & Firestore](https://firebase.google.com/)
-- [Gsap](https://greensock.com/)
-- [Vercel](https://vercel.com/) for Frontend
+- [Cloudflare Pages](https://pages.cloudflare.com/) for Frontend
 - [Firebase Functions](https://firebase.google.com/) for scheduled room cleanup
 - [WebRTC](https://webrtc.org/)
 - [Peer.js](https://github.com/peers/peerjs)

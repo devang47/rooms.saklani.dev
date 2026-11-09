@@ -5,7 +5,7 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Keep in sync with ROOM_TTL_MS in functions/index.js.
+    // Keep in sync with ROOM_TTL_MS in firebase-functions/index.js.
     function roomTtlMs() {
       return 15 * 60 * 1000;
     }

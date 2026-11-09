@@ -3,8 +3,25 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig, loadEnv } from "vite";
 
-export default defineConfig(({ mode }) => {
+const REQUIRED_ENV = [
+  "VITE_API_KEY",
+  "VITE_AUTH_DOMAIN",
+  "VITE_PROJECT_ID",
+  "VITE_STORAGE_BUCKET",
+  "VITE_SENDER_ID",
+  "VITE_APP_ID",
+  "VITE_PEERJS_HOST",
+  "VITE_PEERJS_PORT",
+];
+
+export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
+
+  // Without this, a missing variable still builds, into a broken site.
+  const missing = REQUIRED_ENV.filter((name) => !env[name]);
+  if (command === "build" && missing.length) {
+    throw new Error(`Missing environment variables: ${missing.join(", ")}`);
+  }
   const peerServer =
     `${env.VITE_PEERJS_HOST}:${env.VITE_PEERJS_PORT}` as `${string}.${string}`;
 

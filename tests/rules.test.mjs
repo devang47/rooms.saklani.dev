@@ -226,13 +226,13 @@ test("cleanup removes expired rooms, messages and files, and keeps live ones", a
   // A firebase-admin dependency needs SlowBuffer, which Node 25+ removed. The
   // function itself deploys on Node 22, so this only matters for running the test.
   require("node:buffer").SlowBuffer ??= function SlowBuffer() {};
-  const { cleanup } = require("../functions/index.js");
+  const { cleanup } = require("../firebase-functions/index.js");
   const {
     getFirestore: adminFirestore,
-  } = require("../functions/node_modules/firebase-admin/lib/firestore/index.js");
+  } = require("../firebase-functions/node_modules/firebase-admin/lib/firestore/index.js");
   const {
     getStorage: adminStorage,
-  } = require("../functions/node_modules/firebase-admin/lib/storage/index.js");
+  } = require("../firebase-functions/node_modules/firebase-admin/lib/storage/index.js");
 
   const expiredRoom = "c".repeat(64);
   const liveRoom = "d".repeat(64);

@@ -11,9 +11,6 @@ importers:
       '@fontsource-variable/jetbrains-mono':
         specifier: ^5.3.0
         version: 5.3.0
-      '@vercel/analytics':
-        specifier: ^2.0.1
-        version: 2.0.1(@sveltejs/kit@3.1.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.3)(vite@8.3.6(jiti@1.21.7)(sass@1.108.1)))(svelte@5.57.3)(typescript@6.0.3)(vite@8.3.6(jiti@1.21.7)(sass@1.108.1)))(svelte@5.57.3)
       firebase:
         specifier: ^13.2.0
         version: 13.2.0
@@ -783,35 +780,6 @@ packages:
 
   '@types/qrcode@1.5.5':
     resolution: {integrity: sha512-CdfBi/e3Qk+3Z/fXYShipBT13OJ2fDO2Q2w5CIP5anLTLIndQG9z6P1cnm+8zCWSpm5dnxMFd/uREtb0EXuQzg==}
-
-  '@vercel/analytics@2.0.1':
-    resolution: {integrity: sha512-MTQG6V9qQrt1tsDeF+2Uoo5aPjqbVPys1xvnIftXSJYG2SrwXRHnqEvVoYID7BTruDz4lCd2Z7rM1BdkUehk2g==}
-    peerDependencies:
-      '@remix-run/react': ^2
-      '@sveltejs/kit': ^1 || ^2
-      next: '>= 13'
-      nuxt: '>= 3'
-      react: ^18 || ^19 || ^19.0.0-rc
-      svelte: '>= 4'
-      vue: ^3
-      vue-router: ^4
-    peerDependenciesMeta:
-      '@remix-run/react':
-        optional: true
-      '@sveltejs/kit':
-        optional: true
-      next:
-        optional: true
-      nuxt:
-        optional: true
-      react:
-        optional: true
-      svelte:
-        optional: true
-      vue:
-        optional: true
-      vue-router:
-        optional: true
 
   acorn@8.19.0:
     resolution: {integrity: sha512-oJlA3XiRm7Cyk6qFD2Jn8ak9B7jSy0qy00ADO3+8dpT0LSjFihQYv4C02LFCSYJV3Q37xYwwRy5m+IpIiUzqWw==}
@@ -2428,11 +2396,6 @@ snapshots:
   '@types/qrcode@1.5.5':
     dependencies:
       '@types/node': 18.15.11
-
-  '@vercel/analytics@2.0.1(@sveltejs/kit@3.1.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.3)(vite@8.3.6(jiti@1.21.7)(sass@1.108.1)))(svelte@5.57.3)(typescript@6.0.3)(vite@8.3.6(jiti@1.21.7)(sass@1.108.1)))(svelte@5.57.3)':
-    optionalDependencies:
-      '@sveltejs/kit': 3.1.1(@opentelemetry/api@1.9.1)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.3)(vite@8.3.6(jiti@1.21.7)(sass@1.108.1)))(svelte@5.57.3)(typescript@6.0.3)(vite@8.3.6(jiti@1.21.7)(sass@1.108.1))
-      svelte: 5.57.3
 
   acorn@8.19.0: {}
 
