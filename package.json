@@ -11,7 +11,8 @@
     "test": "node --test tests/crypt.test.mjs",
     "test:rules": "npx -y firebase-tools@15 emulators:exec --only firestore,storage --project demo-rooms \"node --test --test-force-exit tests/rules.test.mjs\"",
     "lint": "prettier --check .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test:signal": "node --test --test-force-exit signalling/signal.test.mjs"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^4.0.1",
