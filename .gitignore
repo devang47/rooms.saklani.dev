@@ -8,3 +8,4 @@ wrangler.toml
 yarn-error.log
 *-debug.log
 build
+.lighthouseci

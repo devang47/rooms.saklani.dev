@@ -42,21 +42,24 @@
     content="At rooms.saklani.dev you can create a private chat room and share data across multiple devices, the chat room will automatically delete after 15min."
   />
   <meta property="og:url" content="https://rooms.saklani.dev" />
+  <meta property="og:image" content="https://rooms.saklani.dev/og.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta
-    property="og:image"
-    content="https://res.cloudinary.com/dyn3sdtfm/image/upload/v1663470958/og1_l965qv.webp"
+    property="og:image:alt"
+    content="The ChatRooms home page, offering Firebase rooms and peer-to-peer rooms"
   />
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@devangsaklani" />
-  <meta name="twitter:title" content="Devang Saklani | Software Engineer" />
+  <meta name="twitter:title" content="Chat Rooms | Devang Saklani" />
   <meta
     name="twitter:description"
     content="At rooms.saklani.dev you can create a private chat room and share data across multiple devices, the chat room will automatically delete after 15min."
   />
+  <meta name="twitter:image" content="https://rooms.saklani.dev/og.jpg" />
   <meta
-    name="twitter:image"
-    content="https://res.cloudinary.com/dyn3sdtfm/image/upload/v1663470958/og1_l965qv.webp"
+    name="twitter:image:alt"
+    content="The ChatRooms home page, offering Firebase rooms and peer-to-peer rooms"
   />
-  <meta name="twitter:image:alt" content="Devang Saklani | Software Engineer" />
 </svelte:head>

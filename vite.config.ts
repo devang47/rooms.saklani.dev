@@ -36,8 +36,9 @@ export default defineConfig(({ command, mode }) => {
     plugins: [
       sveltekit({
         preprocess: vitePreprocess(),
-        // Small enough that inlining beats a render-blocking request.
-        inlineStyleThreshold: 40 * 1024,
+        // Inlining beats a render-blocking request at this size. The global CSS
+        // is about 42 KB; tests/e2e.mjs fails if it outgrows this.
+        inlineStyleThreshold: 64 * 1024,
         // /room/[id] can't be prerendered, so it uses the fallback page.
         adapter: adapter({ fallback: "200.html" }),
         csp: {

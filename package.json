@@ -5,14 +5,18 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && cp build/200.html build/404.html",
+    "build:test": "VITE_USE_EMULATOR=1 VITE_API_KEY=demo VITE_AUTH_DOMAIN=demo-rooms.firebaseapp.com VITE_PROJECT_ID=demo-rooms VITE_STORAGE_BUCKET=demo-rooms.appspot.com VITE_SENDER_ID=0 VITE_APP_ID=demo VITE_PEERJS_HOST=127.0.0.1 VITE_PEERJS_PORT=8788 pnpm build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test": "node --test tests/crypt.test.mjs tests/format.test.mjs",
     "test:rules": "npx -y firebase-tools@15 emulators:exec --only firestore,storage --project demo-rooms \"node --test --test-force-exit tests/rules.test.mjs\"",
-    "lint": "prettier --check .",
-    "format": "prettier --write .",
-    "test:signal": "node --test --test-force-exit signalling/signal.test.mjs"
+    "test:signal": "node --test --test-force-exit signalling/signal.test.mjs",
+    "test:e2e": "npx -y firebase-tools@15 emulators:exec --only auth,firestore,storage --project demo-rooms \"node tests/e2e.mjs\"",
+    "lint": "prettier --check src signalling tests vite.config.ts",
+    "format": "prettier --write src signalling tests vite.config.ts",
+    "stress:signal": "node stress/signal.mjs",
+    "stress:firestore": "npx -y firebase-tools@15 emulators:exec --only firestore --project demo-rooms \"node stress/firestore.mjs\""
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^4.0.1",
@@ -20,6 +24,7 @@
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@types/qrcode": "^1.5.5",
     "autoprefixer": "^10.6.2",
+    "playwright-core": "^1.65.0",
     "postcss": "^8.5.32",
     "prettier": "^3.5.3",
     "prettier-plugin-svelte": "^4.1.1",
