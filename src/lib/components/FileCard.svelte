@@ -1,8 +1,11 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { answerFile } from "#helpers/peer/files.ts";
 
   let { transfer, enter = true }: { transfer: Transfer; enter?: boolean } =
     $props();
+  // Read once: a card on screen when the chat became ready stays history.
+  const entering = untrack(() => enter);
 
   const formatSize = (bytes: number) =>
     bytes < 1024 * 1024
@@ -32,7 +35,7 @@
   class="message-item"
   class:right-aligned={transfer.outgoing}
   class:left-aligned={!transfer.outgoing}
-  class:enter
+  class:enter={entering}
   role="group"
   aria-label="File {transfer.name}"
 >

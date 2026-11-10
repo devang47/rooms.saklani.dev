@@ -1,8 +1,9 @@
 section.chat-ui {
-  @apply mx-auto flex h-screen w-full items-center justify-center bg-dark bg-cover bg-center px-3 py-4 text-center sm:px-4 md:px-14 md:py-8 md:pb-14;
+  @apply mx-auto flex h-dvh h-screen w-full items-center justify-center bg-dark bg-cover bg-center px-3 py-4 text-center sm:px-4 md:px-14 md:py-8 md:pb-14;
 
   .container {
-    @apply relative mx-auto h-[90vh] w-full max-w-[1000px] rounded-[30px] md:rounded-[40px];
+    // A column: the header keeps its height, messages take the rest and scroll.
+    @apply relative mx-auto flex h-full max-h-[90vh] w-full max-w-[1000px] flex-col overflow-hidden rounded-[30px] md:rounded-[40px];
     background-color: #ececec;
     background-image: url("/images/grain-light.webp");
     background-size: 256px;
@@ -19,7 +20,8 @@ section.chat-ui {
 
   header {
     background-image: url("/images/header.webp");
-    @apply flex w-full items-center justify-between gap-3 rounded-t-[30px] bg-dark bg-cover bg-center px-4 py-4 sm:px-6 md:px-12;
+    // Wraps on narrow phones instead of pushing buttons out of the box.
+    @apply flex w-full shrink-0 flex-wrap items-center justify-between gap-3 rounded-t-[30px] bg-dark bg-cover bg-center px-4 py-4 sm:px-6 md:px-12;
 
     h1 {
       @apply text-lg text-white md:text-xl;
@@ -60,7 +62,7 @@ section.chat-ui {
 }
 
 .chat-messages-wrapper {
-  @apply w-full overflow-y-scroll px-4 py-10 sm:px-6 md:px-12;
+  @apply min-h-0 w-full overflow-y-auto overflow-x-hidden px-4 py-10 sm:px-6 md:px-12;
 
   &::-webkit-scrollbar {
     display: none;
@@ -123,7 +125,7 @@ section.chat-ui {
 }
 
 .messages-wrapper {
-  @apply grid w-full content-center items-center gap-5;
+  @apply grid w-full grid-cols-[minmax(0,1fr)] content-center items-center gap-5;
 
   h2 {
     @apply mx-auto mt-8 w-10/12 font-medium text-dark/90;
@@ -133,10 +135,16 @@ section.chat-ui {
 .message-item {
   @apply relative w-full min-w-[0] max-w-fit rounded-[20px] rounded-tr-md border border-black/10 bg-light px-4 py-3 pr-12 text-left text-[15px] leading-6 text-[#38404A] sm:w-fit sm:max-w-md sm:px-6 sm:py-5 sm:pr-14 md:rounded-[24px] md:rounded-tr-xl md:px-8 md:pr-14;
 
+  // Long words and links wrap instead of widening the bubble.
+  overflow-wrap: anywhere;
+
   p {
-    @apply w-full break-words;
-    word-wrap: break-word;
+    @apply w-full;
     white-space: pre-wrap;
+  }
+
+  img {
+    @apply h-auto max-w-full object-contain;
   }
 
   a {

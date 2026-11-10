@@ -77,7 +77,7 @@
         >{/if}{/each}
   </p>
 
-  <div class="mt-2 flex items-center gap-2 text-xs opacity-50">
+  <div class="mt-2 flex flex-wrap items-center gap-x-2 text-xs opacity-50">
     {#if showMetadata}
       <div>{messageData.deviceId}</div>
       |

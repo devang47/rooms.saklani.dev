@@ -247,7 +247,7 @@
     />
 
     <div
-      class="chat-messages-wrapper h-[calc(90vh-65.6px)] pb-[200px]"
+      class="chat-messages-wrapper flex-1 pb-[200px]"
       bind:this={messagesEl}
       onscroll={handleScroll}
     >

@@ -108,6 +108,7 @@
   $effect(() => {
     void $connectionState.selectedId;
     ready = false;
+    atBottom = true;
     tick().then(() => (ready = true));
   });
 
@@ -115,16 +116,37 @@
     $relayMessages.get($connectionState.selectedId ?? "") ?? [],
   );
 
-  $effect(() => {
-    if (!messages.length) return;
-    tick().then(() => (document.body.scrollTop = document.body.scrollHeight));
-  });
+  // The chat has a fixed height and scrolls inside. Whenever its content
+  // grows, follow it down, unless the reader has scrolled up to read.
+  let messagesEl: HTMLElement | undefined = $state();
+  let atBottom = true;
+  // Only scrolling up unpins: a burst of messages can grow the list between
+  // our own scroll and its scroll event, which would otherwise look like one.
+  let lastTop = 0;
+  const handleScroll = () => {
+    if (!messagesEl) return;
+    const { scrollHeight, scrollTop, clientHeight } = messagesEl;
+    if (scrollHeight - scrollTop - clientHeight < 80) atBottom = true;
+    else if (scrollTop < lastTop) atBottom = false;
+    lastTop = scrollTop;
+  };
+  const stayAtBottom = (list: HTMLElement) => {
+    const observer = new ResizeObserver(() => {
+      if (atBottom) messagesEl?.scrollTo({ top: messagesEl.scrollHeight });
+    });
+    observer.observe(list);
+    return { destroy: () => observer.disconnect() };
+  };
 </script>
 
 <svelte:window onkeydown={focusOnInput} />
 
-<div class="chat-messages-wrapper min-h-[350px] !pb-52 md:!px-5">
-  <div class="messages-wrapper">
+<div
+  class="chat-messages-wrapper h-[clamp(350px,55dvh,640px)] !pb-52 md:!px-5"
+  bind:this={messagesEl}
+  onscroll={handleScroll}
+>
+  <div class="messages-wrapper" use:stayAtBottom>
     {#if !messages.length}
       <div class="placeholder text-sm">No recent messages</div>
     {:else}
