@@ -8,7 +8,8 @@
   // SQLite-backed Durable Objects are available on the free plan.
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Signal"] }],
   "vars": {
-    // Comma-separated. Add "https://*.<project>.pages.dev" for preview builds.
-    "ALLOWED_ORIGINS": "https://rooms.saklani.dev",
+    // Comma-separated. The workers.dev entry covers the site's own address
+    // and its preview builds before the custom domain is set up.
+    "ALLOWED_ORIGINS": "https://rooms.saklani.dev,https://*.devangsaklani.workers.dev",
   },
 }

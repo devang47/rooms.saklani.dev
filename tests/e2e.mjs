@@ -33,9 +33,7 @@ const server = spawn(
   [
     "-y",
     "wrangler@4",
-    "pages",
     "dev",
-    "build",
     "--port",
     "4173",
     "--ip",
@@ -305,7 +303,8 @@ await check("a direct room link opens in a fresh browser", async () => {
   const c = await newUser("direct");
   await c.goto(`${BASE}/room/${code}`);
   await msg(c, "hello from A").waitFor({ timeout: 15000 });
-  // History shows at once instead of animating in.
+  // History shows at once instead of animating in, even after the chat is ready.
+  await c.waitForTimeout(300);
   assert.equal(
     await msg(c, "hello from A").evaluate((e) => e.classList.contains("enter")),
     false,
