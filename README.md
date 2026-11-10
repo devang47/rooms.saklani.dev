@@ -61,7 +61,7 @@ flowchart LR
     App[SvelteKit app]
   end
 
-  App -- static files --> Pages[Cloudflare Pages]
+  App -- static files --> Pages[Cloudflare Workers<br/>static assets]
 
   App -- "encrypted messages, files" --> Firestore[(Firestore and Storage)]
   Cleanup[Scheduled function<br/>every minute] -- deletes rooms after 15 min --> Firestore
@@ -72,7 +72,7 @@ flowchart LR
 ```
 
 - **Frontend:** SvelteKit 3 and Svelte 5, prerendered and served as static
-  files from Cloudflare Pages. Room links use a single-page fallback.
+  files from Cloudflare Workers. Room links use a single-page fallback.
 - **Rooms:** Firestore and Firebase Storage, behind security rules that only
   allow the exact reads and writes the app makes. A scheduled Firebase function
   deletes rooms, messages and files after 15 minutes.
@@ -137,8 +137,9 @@ and pull request.
 
 ## Deploying
 
-- **Site:** Cloudflare Pages, with build command `pnpm build`, output
-  directory `build`, and the `VITE_*` variables above.
+- **Site:** a Cloudflare Worker connected to this repo, with build command
+  `pnpm build`, deploy command `npx wrangler deploy`, and the `VITE_*`
+  variables above as build variables. `wrangler.jsonc` serves `build/`.
 - **Signalling server:** `cd signalling && npx wrangler deploy`. Add the site's
   address to `ALLOWED_ORIGINS` in `signalling/wrangler.jsonc`.
 - **Firebase:** `npx firebase-tools deploy --only firestore:rules,storage,functions`.
@@ -149,5 +150,4 @@ and pull request.
 [Tailwind CSS](https://tailwindcss.com/),
 [Firebase](https://firebase.google.com/),
 [PeerJS](https://github.com/peers/peerjs),
-[Cloudflare Pages](https://pages.cloudflare.com/) and
 [Cloudflare Workers](https://workers.cloudflare.com/).

@@ -1,0 +1,12 @@
+// The site, served as static files from Cloudflare Workers.
+// _headers and _redirects in static/ set security headers, caching and the
+// room fallback.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "rooms-saklani-dev",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./build",
+    "not_found_handling": "404-page"
+  }
+}

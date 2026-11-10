@@ -30,17 +30,7 @@ const check = async (name, fn) => {
 
 const server = spawn(
   "npx",
-  [
-    "-y",
-    "wrangler@4",
-    "pages",
-    "dev",
-    "build",
-    "--port",
-    "4173",
-    "--ip",
-    "127.0.0.1",
-  ],
+  ["-y", "wrangler@4", "dev", "--port", "4173", "--ip", "127.0.0.1"],
   {
     cwd: REPO,
     env: { ...process.env, WRANGLER_SEND_METRICS: "false" },
@@ -305,7 +295,8 @@ await check("a direct room link opens in a fresh browser", async () => {
   const c = await newUser("direct");
   await c.goto(`${BASE}/room/${code}`);
   await msg(c, "hello from A").waitFor({ timeout: 15000 });
-  // History shows at once instead of animating in.
+  // History shows at once instead of animating in, even after the chat is ready.
+  await c.waitForTimeout(300);
   assert.equal(
     await msg(c, "hello from A").evaluate((e) => e.classList.contains("enter")),
     false,

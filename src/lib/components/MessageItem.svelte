@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { addNotification } from "#utils/notifications.ts";
   import CopyIcon from "#lib/icons/CopyIcon.svelte";
   import { connectionState, user } from "#stores";
@@ -19,6 +20,9 @@
     showMetadata = false,
     enter = true,
   }: Props = $props();
+
+  // Read once: a message on screen when the chat became ready stays history.
+  const entering = untrack(() => enter);
 
   const message = $derived(messageData.data);
 
@@ -49,7 +53,7 @@
 
 <div
   class="message-item"
-  class:enter
+  class:enter={entering}
   class:right-aligned={sameDevice}
   class:left-aligned={!sameDevice}
 >
