@@ -1,11 +1,12 @@
-import Peer, {
-  type DataConnection,
-  type MediaConnection,
+import type {
+  default as Peer,
+  DataConnection,
+  MediaConnection,
   PeerErrorType,
   PeerError,
 } from "peerjs";
-import { addNotification } from "../../utils/notifications";
-import { generateRandomName } from "$utils";
+import { addNotification } from "#utils/notifications.ts";
+import { ask } from "#utils/prompts.ts";
 import { get } from "svelte/store";
 import {
   connectionState,
@@ -13,17 +14,17 @@ import {
   relayMessages,
   remoteUserVideoRef,
   videoCallDialogOpen,
-} from "$stores";
+} from "#stores";
 
-let activeConnectionsMap: Map<string, DataConnection> = new Map<
-  string,
-  DataConnection
->();
+const activeConnectionsMap = new Map<string, DataConnection>();
 
 export enum DataType {
-  FILE = "FILE",
   MESSAGE = "MESSAGE",
   SYSTEM = "SYSTEM",
+  FILE_OFFER = "FILE_OFFER",
+  FILE_ACCEPT = "FILE_ACCEPT",
+  FILE_DECLINE = "FILE_DECLINE",
+  FILE_CHUNK = "FILE_CHUNK",
 }
 
 export interface Data {
@@ -31,72 +32,90 @@ export interface Data {
   timestamp: string;
   deviceId: string;
   message?: string;
-  file?: Blob;
+  fileId?: string;
   fileName?: string;
-  fileType?: string;
+  fileSize?: number;
+  chunk?: ArrayBuffer;
+  last?: boolean;
 }
+
+const host = import.meta.env.VITE_PEERJS_HOST;
+// A local signalling server (tests, development) runs without TLS.
+const secure = !/^(localhost|127\.0\.0\.1)$/.test(host);
+
+const MEDIA: MediaStreamConstraints = {
+  video: {
+    width: { ideal: 340 },
+    height: { ideal: 340 },
+    frameRate: { ideal: 24 },
+    aspectRatio: 1,
+  },
+  audio: {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  },
+};
 
 let peer: Peer | undefined;
 let call: MediaConnection | undefined;
 let mediaStream: MediaStream | undefined;
 
+const showStreams = (local: MediaStream, connection: MediaConnection) => {
+  get(currentUserVideoRef).srcObject = local;
+  connection.on("stream", (remoteStream) => {
+    get(remoteUserVideoRef).srcObject = remoteStream;
+    videoCallDialogOpen.set(true);
+  });
+  connection.on("close", () => {
+    addNotification("Call closed", false);
+    closeCall();
+  });
+};
+
 export const PeerConnection = {
   getPeer: () => peer,
-  startPeerSession: () =>
-    new Promise<string>((resolve, reject) => {
+  getConnection: (id: string) => activeConnectionsMap.get(id),
+  startPeerSession: async () => {
+    const [{ default: PeerClient }, { generateRandomName }] = await Promise.all(
+      [import("peerjs"), import("#utils/index.ts")],
+    );
+
+    return new Promise<string>((resolve, reject) => {
       try {
-        const id = generateRandomName();
-        peer = new Peer(id, {
-          host: import.meta.env.VITE_PEERJS_HOST,
-          port: import.meta.env.VITE_PEERJS_PORT,
-          secure: true,
+        peer = new PeerClient(generateRandomName(), {
+          host,
+          port: Number(import.meta.env.VITE_PEERJS_PORT),
+          secure,
         });
 
-        peer.on("open", (id) => {
-          console.log("My ID: " + id);
-          resolve(id);
-        });
+        peer.on("open", resolve);
 
-        peer.on("call", async (call) => {
-          if (
-            window.confirm("Do you want to accept video call from " + id + "?")
-          ) {
-            try {
-              const getUserMedia = navigator.mediaDevices.getUserMedia;
+        peer.on("call", async (incoming) => {
+          // Only peers the user already accepted can ring them.
+          if (!activeConnectionsMap.has(incoming.peer)) {
+            incoming.close();
+            return;
+          }
 
-              mediaStream = await getUserMedia({
-                video: {
-                  width: { ideal: 340 },
-                  height: { ideal: 340 },
-                  frameRate: { ideal: 24 },
-                  aspectRatio: 1,
-                },
-                audio: {
-                  echoCancellation: true,
-                  noiseSuppression: true,
-                  autoGainControl: true,
-                },
-              });
-
-              get(currentUserVideoRef).srcObject = mediaStream;
-              call.answer(mediaStream);
-
-              call.on("stream", function (remoteStream) {
-                get(remoteUserVideoRef).srcObject = remoteStream;
-                videoCallDialogOpen.set(true);
-              });
-
-              call.on("close", () => {
-                addNotification("Call closed", false);
-                closeCall();
-              });
-            } catch (error) {
-              addNotification("Error when trying to call peer", true);
-            }
-          } else {
-            call.close();
+          const accepted = await ask(`${incoming.peer} is calling`, {
+            accept: "Answer",
+          });
+          if (!accepted) {
+            incoming.close();
             sendSystemMessage("Call declined");
-            addNotification("Call declined");
+            return;
+          }
+
+          try {
+            mediaStream = await navigator.mediaDevices.getUserMedia(MEDIA);
+            // Kept so that hanging up here also ends the call.
+            call = incoming;
+            incoming.answer(mediaStream);
+            showStreams(mediaStream, incoming);
+          } catch (error) {
+            console.log(error);
+            addNotification("Error when trying to call peer", true);
           }
         });
 
@@ -108,20 +127,13 @@ export const PeerConnection = {
         console.log(err);
         reject(err);
       }
-    }),
-  closePeerSession: () =>
-    new Promise<void>((resolve, reject) => {
-      try {
-        if (peer) {
-          peer.destroy();
-          peer = undefined;
-        }
-        resolve();
-      } catch (err) {
-        console.log(err);
-        reject(err);
-      }
-    }),
+    });
+  },
+  closePeerSession: async () => {
+    peer?.destroy();
+    peer = undefined;
+    activeConnectionsMap.clear();
+  },
   connectPeer: (id: string) =>
     new Promise<void>((resolve, reject) => {
       if (!peer) {
@@ -139,7 +151,6 @@ export const PeerConnection = {
         } else {
           conn
             .on("open", function () {
-              console.log("Connect to: " + id);
               activeConnectionsMap.set(id, conn);
               peer?.removeListener("error", handlePeerError);
               resolve();
@@ -167,58 +178,33 @@ export const PeerConnection = {
       }
     }),
   onIncomingConnection: (callback: (conn: DataConnection) => void) => {
-    peer?.on("connection", function (conn) {
-      console.log("Incoming connection: " + conn.peer);
+    peer?.on("connection", async (conn) => {
+      // A declined peer is never registered, so nothing it sends gets handled.
+      const accepted = await ask(`${conn.peer} wants to connect`);
+      if (!accepted || !peer) {
+        conn.close();
+        return;
+      }
+
       activeConnectionsMap.set(conn.peer, conn);
       callback(conn);
     });
   },
   onConnectionDisconnected: (id: string, callback: () => void) => {
-    if (!peer) {
-      throw new Error("Peer hasn't started yet");
-    }
-    if (!activeConnectionsMap.has(id)) {
-      throw new Error("Connection didn't exist");
-    }
-    let conn = activeConnectionsMap.get(id);
-    if (conn) {
-      conn.on("close", function () {
-        console.log("Connection closed: " + id);
-        activeConnectionsMap.delete(id);
-        callback();
-      });
-    }
+    activeConnectionsMap.get(id)?.on("close", () => {
+      activeConnectionsMap.delete(id);
+      callback();
+    });
   },
-  sendConnection: (id: string, data: Data): Promise<void> =>
-    new Promise((resolve, reject) => {
-      if (!activeConnectionsMap.has(id)) {
-        reject(new Error("Connection didn't exist"));
-      }
-      try {
-        let conn = activeConnectionsMap.get(id);
-        if (conn) {
-          conn.send(data);
-        }
-      } catch (err) {
-        reject(err);
-      }
-      resolve();
-    }),
-  onConnectionReceiveData: (id: string, callback: (f: Data) => void) => {
-    if (!peer) {
-      throw new Error("Peer hasn't started yet");
-    }
-    if (!activeConnectionsMap.has(id)) {
-      throw new Error("Connection didn't exist");
-    }
-    let conn = activeConnectionsMap.get(id);
-    if (conn) {
-      conn.on("data", function (receivedData) {
-        console.log("Receiving data from " + id);
-        let data = receivedData as Data;
-        callback(data);
-      });
-    }
+  sendConnection: async (id: string, data: Data) => {
+    const conn = activeConnectionsMap.get(id);
+    if (!conn) throw new Error("Connection didn't exist");
+    await conn.send(data);
+  },
+  onConnectionReceiveData: (id: string, callback: (data: Data) => void) => {
+    activeConnectionsMap
+      .get(id)
+      ?.on("data", (receivedData) => callback(receivedData as Data));
   },
 
   callPeer: async (remotePeerId: string) => {
@@ -226,36 +212,13 @@ export const PeerConnection = {
       throw new Error("Peer hasn't started yet");
     }
 
-    const getUserMedia = navigator.mediaDevices.getUserMedia;
     try {
-      mediaStream = await getUserMedia({
-        video: {
-          width: { ideal: 340 },
-          height: { ideal: 340 },
-          frameRate: { ideal: 24 },
-          aspectRatio: 1,
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
-
-      get(currentUserVideoRef).srcObject = mediaStream;
+      mediaStream = await navigator.mediaDevices.getUserMedia(MEDIA);
       call = peer.call(remotePeerId, mediaStream);
-
       sendSystemMessage("Call started by " + get(connectionState).id);
-
-      call.on("stream", (remoteStream: any) => {
-        get(remoteUserVideoRef).srcObject = remoteStream;
-      });
-
-      call.on("close", () => {
-        addNotification("Call closed", false);
-        closeCall();
-      });
+      showStreams(mediaStream, call);
     } catch (err) {
+      console.log(err);
       addNotification("Error when trying to call peer", true);
     }
   },
@@ -266,13 +229,21 @@ export const closeCall = () => {
   call = undefined;
 
   videoCallDialogOpen.set(false);
-  mediaStream?.getTracks().forEach((track) => {
-    track.stop();
-  });
+  mediaStream?.getTracks().forEach((track) => track.stop());
   mediaStream = undefined;
 
   get(currentUserVideoRef).srcObject = null;
   get(remoteUserVideoRef).srcObject = null;
+};
+
+// Turns the microphone or camera on or off, and returns whether it is now on.
+export const toggleTrack = (kind: "audio" | "video") => {
+  const tracks =
+    kind === "audio"
+      ? mediaStream?.getAudioTracks()
+      : mediaStream?.getVideoTracks();
+  tracks?.forEach((track) => (track.enabled = !track.enabled));
+  return tracks?.[0]?.enabled ?? true;
 };
 
 export const sendSystemMessage = async (message: string) => {

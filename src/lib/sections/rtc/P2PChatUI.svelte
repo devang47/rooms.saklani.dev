@@ -1,147 +1,139 @@
 <script lang="ts">
-import { connectionState, loading, relayMessages } from "$stores";
-import { addNotification } from "$utils/notifications";
-import { onMount, tick } from "svelte";
-import MessageItem from "$lib/components/MessageItem.svelte";
-import { DataType, PeerConnection } from "$helpers/peer";
-import UploadIcon from "$lib/icons/UploadIcon.svelte";
-import { browser } from "$app/environment";
-import CallIcon from "$lib/icons/CallIcon.svelte";
+  import { connectionState, relayMessages, transfers } from "#stores";
+  import { addNotification } from "#utils/notifications.ts";
+  import { tick } from "svelte";
+  import MessageItem from "#lib/components/MessageItem.svelte";
+  import { DataType, PeerConnection } from "#helpers/peer/index.ts";
+  import UploadIcon from "#lib/icons/UploadIcon.svelte";
+  import FileCard from "#lib/components/FileCard.svelte";
+  import { offerFile } from "#helpers/peer/files.ts";
+  import CallIcon from "#lib/icons/CallIcon.svelte";
 
-let chatInput = "";
-let chatInputBox: HTMLTextAreaElement;
-let uploadFileInput: HTMLInputElement;
-export let handleCallPeer: (id: string) => void;
-
-const handleInputChange = async (e: any) => {
-  if (!$connectionState.selectedId) {
-    addNotification("Please select a connection", true);
-    return;
+  let chatInput = $state("");
+  let chatInputBox = $state<HTMLTextAreaElement>();
+  let uploadFileInput = $state<HTMLInputElement>();
+  interface Props {
+    handleCallPeer: (id: string) => void;
   }
 
-  if (e?.target?.files.length > 0) {
-    $loading = true;
+  let { handleCallPeer }: Props = $props();
+
+  const handleInputChange = async (e: Event) => {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    const selectedId = $connectionState.selectedId;
+    if (!file) return;
+    if (!selectedId) {
+      addNotification("Please select a connection", true);
+      return;
+    }
+
     try {
-      let file = e.target.files[0] as unknown as File;
-      let blob = new Blob([file], { type: file.type });
-      await PeerConnection.sendConnection($connectionState.selectedId, {
-        dataType: DataType.FILE,
-        file: blob,
-        fileName: file.name,
-        fileType: file.type,
-        deviceId: $connectionState.id ?? "",
-        timestamp: String(new Date().getTime()),
-      });
+      await offerFile(selectedId, file);
     } catch (error) {
       console.log(error);
-      addNotification(
-        "Failed to deliver file to " + $connectionState.selectedId,
-        true,
-      );
+      addNotification("Failed to deliver file to " + selectedId, true);
     }
-    $loading = false;
-  }
-};
+  };
 
-const handleAddMsg = async () => {
-  const selectedId = $connectionState.selectedId;
-  if (!selectedId) {
-    addNotification("Please select a connection", true);
-    return;
-  }
-
-  chatInput = chatInput.trim();
-  if (!chatInput) {
-    addNotification("Input is empty", true);
-    return;
-  }
-
-  try {
-    loading.set(true);
-
-    let msg = chatInput;
-
-    const data = {
-      dataType: DataType.MESSAGE,
-      message: msg,
-      deviceId: $connectionState.id ?? "",
-      timestamp: new Date().toString(),
-    };
-
-    await PeerConnection.sendConnection(selectedId, data);
-    relayMessages.update((msgs) => {
-      msgs.set(selectedId, [
-        ...(msgs.get(selectedId) ?? []),
-        {
-          data: data.message,
-          device: data.deviceId,
-          deviceId: data.deviceId,
-          timestamp: data.timestamp,
-        },
-      ]);
-
-      return msgs;
-    });
-
-    chatInput = "";
-    loading.set(false);
-    addNotification("Message sent successfully");
-
-    if (innerWidth > 640) {
-      chatInputBox.focus();
+  const handleAddMsg = async () => {
+    const selectedId = $connectionState.selectedId;
+    if (!selectedId) {
+      addNotification("Please select a connection", true);
+      return;
     }
-  } catch (err) {
-    loading.set(false);
-    console.log(err);
-    addNotification("Error when sending message");
-  }
-};
 
-onMount(async () => {
-  chatInputBox.addEventListener("keypress", (e) => {
-    if (innerWidth < 640) return;
+    chatInput = chatInput.trim();
+    if (!chatInput) {
+      addNotification("Input is empty", true);
+      return;
+    }
 
-    if (e.key === "Enter" && e.shiftKey) {
+    try {
+      let msg = chatInput;
+
+      const data = {
+        dataType: DataType.MESSAGE,
+        message: msg,
+        deviceId: $connectionState.id ?? "",
+        timestamp: new Date().toString(),
+      };
+
+      await PeerConnection.sendConnection(selectedId, data);
+      relayMessages.update((msgs) => {
+        msgs.set(selectedId, [
+          ...(msgs.get(selectedId) ?? []),
+          {
+            data: data.message,
+            device: data.deviceId,
+            deviceId: data.deviceId,
+            timestamp: data.timestamp,
+          },
+        ]);
+
+        return msgs;
+      });
+
+      chatInput = "";
+
+      if (innerWidth > 640) {
+        chatInputBox?.focus();
+      }
+    } catch (err) {
+      console.log(err);
+      addNotification("Error when sending message");
+    }
+  };
+
+  const handleKeydown = (e: KeyboardEvent) => {
+    // On phones Enter adds a new line; the Send button sends.
+    if (innerWidth < 640 || e.key !== "Enter" || e.shiftKey) return;
+    e.preventDefault();
+    handleAddMsg();
+  };
+
+  const focusOnInput = (e: KeyboardEvent) => {
+    if (innerWidth < 640 || e.target instanceof HTMLTextAreaElement) return;
+    if (e.target instanceof HTMLInputElement) return;
+
+    if (e.key === "/") {
       e.preventDefault();
-      chatInput += "\r\n";
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddMsg();
-    } else if (e.key === "/") {
+      chatInputBox?.focus();
     }
+  };
+
+  // Switching conversation shows its history at once; only new items animate.
+  let ready = $state(false);
+  $effect(() => {
+    void $connectionState.selectedId;
+    ready = false;
+    tick().then(() => (ready = true));
   });
 
-  window.addEventListener("keypress", focusOnInput);
-});
+  const messages = $derived(
+    $relayMessages.get($connectionState.selectedId ?? "") ?? [],
+  );
 
-const focusOnInput = (e: KeyboardEvent) => {
-  if (innerWidth < 640) return;
-
-  if (e.key === "/") {
-    chatInputBox.focus();
-  }
-};
-
-const scrollToBottom = async () => {
-  if (browser) {
-    await tick();
-    document.body.scrollTop = document.body.scrollHeight;
-  }
-};
-
-relayMessages.subscribe((msgs) => {
-  const msgRelay = msgs.get($connectionState.selectedId ?? "") ?? [];
-  if (msgRelay.length > 0) scrollToBottom();
-});
+  $effect(() => {
+    if (!messages.length) return;
+    tick().then(() => (document.body.scrollTop = document.body.scrollHeight));
+  });
 </script>
+
+<svelte:window onkeydown={focusOnInput} />
 
 <div class="chat-messages-wrapper min-h-[350px] !pb-52 md:!px-5">
   <div class="messages-wrapper">
-    {#if !($relayMessages.get($connectionState.selectedId ?? "") ?? []).length}
+    {#if !messages.length}
       <div class="placeholder text-sm">No recent messages</div>
     {:else}
-      {#each $relayMessages.get($connectionState.selectedId ?? "") ?? [] as item}
-        <MessageItem showMetadata roomId={item.deviceId} messageData={item} />
+      {#each messages as item}
+        {#if item.fileId && $transfers[item.fileId]}
+          <FileCard enter={ready} transfer={$transfers[item.fileId]} />
+        {:else}
+          <MessageItem showMetadata enter={ready} messageData={item} />
+        {/if}
       {/each}
     {/if}
   </div>
@@ -159,11 +151,11 @@ relayMessages.subscribe((msgs) => {
     rows="2"
     bind:this={chatInputBox}
     bind:value={chatInput}
-  />
+    onkeydown={handleKeydown}></textarea>
   <div class="flex flex-col gap-4">
     <button
-      class="w-full rounded-md bg-dark px-4 py-2 text-xs font-bold text-light disabled:cursor-not-allowed"
-      on:click={handleAddMsg}
+      class="press w-full rounded-md bg-dark px-4 py-2 text-xs font-bold text-light disabled:cursor-not-allowed"
+      onclick={handleAddMsg}
       disabled={!$connectionState.selectedId}
       aria-label="send message button"
       title="Send message"
@@ -176,7 +168,7 @@ relayMessages.subscribe((msgs) => {
       title="Upload media"
       aria-label="Upload media button"
       disabled={!$connectionState.selectedId}
-      on:click={() => uploadFileInput.click()}
+      onclick={() => uploadFileInput?.click()}
     >
       <div title="Upload media" class="w-5 text-dark">
         <UploadIcon />
@@ -190,18 +182,18 @@ relayMessages.subscribe((msgs) => {
         class="sr-only"
         name="fileinput"
         id="fileinput"
-        on:change={handleInputChange}
+        onchange={handleInputChange}
       />
     </button>
 
     <button
       class="btn-secondary w-full rounded-md bg-light px-4 py-1.5 text-xs font-bold shadow disabled:cursor-not-allowed"
-      title="Upload media"
-      aria-label="Upload media button"
+      title="Start a video call"
+      aria-label="Start a video call"
       disabled={!$connectionState.selectedId}
-      on:click={() => handleCallPeer($connectionState.selectedId ?? "")}
+      onclick={() => handleCallPeer($connectionState.selectedId ?? "")}
     >
-      <div title="Upload media" class="w-5 text-dark">
+      <div class="w-5 text-dark">
         <CallIcon class="w-5" />
       </div>
     </button>

@@ -1,87 +1,60 @@
 <script lang="ts">
-import { goto } from "$app/navigation";
-import Button from "$lib/components/Button.svelte";
-import CircleAnimation from "$lib/components/CircleAnimation.svelte";
-import ArrowRight from "$lib/icons/ArrowRight.svelte";
-import CurvedArrowLine from "$lib/icons/CurvedArrowLine.svelte";
-import DashedUnderline from "$lib/icons/DashedUnderline.svelte";
-import Github from "$lib/icons/Github.svelte";
-import FloatingImages from "$lib/sections/FloatingImages.svelte";
-import { loading } from "$stores";
-import { createRoom } from "$helpers/Room";
-import { onMount } from "svelte";
-import gsap, { Power3 } from "gsap";
+  import { goto, preloadCode } from "$app/navigation";
+  import Button from "#lib/components/Button.svelte";
+  import CircleAnimation from "#lib/components/CircleAnimation.svelte";
+  import ArrowRight from "#lib/icons/ArrowRight.svelte";
+  import CurvedArrowLine from "#lib/icons/CurvedArrowLine.svelte";
+  import DashedUnderline from "#lib/icons/DashedUnderline.svelte";
+  import Github from "#lib/icons/Github.svelte";
+  import FloatingImages from "#lib/sections/FloatingImages.svelte";
+  import { roomData } from "#stores";
+  import { addNotification } from "#utils/notifications.ts";
+  import { coverPage } from "#utils/transitions.ts";
 
-let roomId = "";
+  let roomId = "";
 
-let formLoading = "false";
+  let formLoading = $state("false");
 
-const transitionJoinPageStart = (callback: () => void) => {
-  gsap
-    .to(".transition-join-page", {
-      height: "100%",
-      duration: 0.7,
-      ease: Power3.easeOut,
-    })
-    .then(callback);
-};
+  // Hovering or focusing a button fetches the page behind it, Firebase included.
+  const warmRoom = () => preloadCode("/room/[id]");
+  const warmJoin = () => preloadCode("/room");
 
-const handleCreateRoom = async () => {
-  formLoading = "true";
-  roomId = await createRoom();
-  formLoading = "complete";
+  const handleCreateRoom = async () => {
+    formLoading = "true";
+    try {
+      const { createRoom } = await import("#helpers/Room.ts");
+      roomId = await createRoom();
+      $roomData = { timestamp: Date.now() };
+    } catch (error) {
+      console.log(error);
+      formLoading = "false";
+      addNotification(
+        "Couldn't create the room. Check your connection and device clock.",
+        true,
+      );
+      return;
+    }
+    formLoading = "complete";
 
-  transitionJoinPageStart(() => {
-    setTimeout(() => {
-      $loading = true;
-      goto(`/room/${roomId}`);
-    }, 100);
-  });
-};
+    await coverPage();
+    goto(`/room/${roomId}`);
+  };
 
-const handleGotoJoinPage = () => {
-  transitionJoinPageStart(() => {
-    setTimeout(() => {
-      goto("/room");
-    }, 100);
-  });
-};
-
-onMount(() => {
-  loading.set(false);
-
-  const tl = gsap.timeline({});
-
-  tl.to(".bg", {
-    delay: 0.2,
-    width: "100%",
-    duration: 1,
-    ease: Power3.easeOut,
-  })
-    .to(".content", {
-      delay: -0.6,
-      opacity: 1,
-      duration: 0.4,
-    })
-    .to(".moveable-block", {
-      delay: -0.7,
-      x: 0,
-      y: 0,
-      opacity: 1,
-      duration: 0.4,
-    });
-});
+  const handleGotoJoinPage = async () => {
+    await coverPage();
+    goto("/room");
+  };
 </script>
 
 <FloatingImages />
 
-<div class="transition-join-page" />
+<div class="transition-join-page"></div>
 
 <section class="homepage">
   <div
     class="relative z-[1] mx-auto mb-5 flex h-full min-h-[600px] w-full flex-col items-center justify-center rounded-[30px] px-6 py-20 pb-10 font-mono md:rounded-[40px] md:py-4"
   >
-    <div class="content opacity-0">
+    <div class="content">
       <div class="relative mx-auto w-fit">
         <h1
           class="sans relative text-[40px] font-bold text-white text-opacity-90 sm:text-[55px] md:text-[70px] lg:text-[80px]"
@@ -121,7 +94,7 @@ onMount(() => {
 
             <li><span>✅</span> Auto delete all data after 15min</li>
 
-            <li><span>✅</span> Secure</li>
+            <li><span>✅</span> Messages encrypted (files are not)</li>
 
             <li><span>❌</span> End to end encrypted</li>
           </ul>
@@ -129,7 +102,9 @@ onMount(() => {
           <Button
             label="create a room"
             class="relative z-20 mt-5 w-[175px] text-sm md:w-[189px]"
-            on:click={handleCreateRoom}
+            onclick={handleCreateRoom}
+            onpointerenter={warmRoom}
+            onfocus={warmRoom}
           >
             {#if formLoading === "true"}
               <CircleAnimation class="w-[80px]" />
@@ -145,7 +120,9 @@ onMount(() => {
             or <button
               aria-label="Join existing room"
               title="Join existing room"
-              on:click={handleGotoJoinPage}
+              onclick={handleGotoJoinPage}
+              onpointerenter={warmJoin}
+              onfocus={warmJoin}
               class=""
             >
               Join room
@@ -215,13 +192,13 @@ onMount(() => {
             </li>
 
             <li>
-              <span>✅</span> Video calls (coming soon)
+              <span>✅</span> Video calls
             </li>
           </ul>
 
           <a href="/p2p">
             <Button
-              label="create a room"
+              label="Start server"
               class="relative z-20 mt-5 w-[175px] text-sm md:w-[189px]"
             >
               {#if formLoading === "true"}
@@ -249,20 +226,20 @@ onMount(() => {
       </div>
     </div>
 
-    <div class="bg" />
+    <div class="bg"></div>
   </div>
 </section>
 
 <style lang="postcss">
-:global(html) {
-  @apply !overflow-hidden;
-}
+  :global(html) {
+    @apply !overflow-hidden;
+  }
 
-li span {
-  @apply absolute left-0;
-}
+  li span {
+    @apply absolute left-0;
+  }
 
-li {
-  @apply relative pl-6;
-}
+  li {
+    @apply relative pl-6;
+  }
 </style>

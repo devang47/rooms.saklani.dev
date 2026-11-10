@@ -6,11 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="manifest" href="/manifest.json" />
 
-    <meta
-      name="image"
-      content="https://res.cloudinary.com/dyn3sdtfm/image/upload/v1663470958/og1_l965qv.webp"
-    />
-
     <link
       rel="apple-touch-icon"
       sizes="180x180"
@@ -29,9 +24,31 @@
       href="/favicon/favicon-16x16.png"
     />
 
+    <link
+      rel="preload"
+      href="/fonts/RegulatorNovaBold.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/images/bg-1280.webp"
+      as="image"
+      fetchpriority="high"
+      media="(min-width: 641px)"
+    />
+    <link
+      rel="preload"
+      href="/images/bg-640.webp"
+      as="image"
+      fetchpriority="high"
+      media="(max-width: 640px)"
+    />
+
     %sveltekit.head%
   </head>
   <body>
-    <div class="">%sveltekit.body%</div>
+    <div data-sveltekit-preload-data="hover">%sveltekit.body%</div>
   </body>
 </html>

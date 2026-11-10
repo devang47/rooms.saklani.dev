@@ -1,8 +1,7 @@
 section.homepage {
   @apply mx-auto h-fit w-full max-w-[1500px] bg-[#F2F2F2] px-4 py-4 pb-10 text-center md:h-screen md:min-h-screen md:px-14 md:py-8;
   .bg {
-    @apply absolute left-1/2 top-1/2 z-[-1] mx-auto h-full w-0 -translate-x-1/2 -translate-y-1/2 rounded-[30px] bg-[#555E69] bg-cover bg-center;
-    background-image: url(https://res.cloudinary.com/dyn3sdtfm/image/upload/q_80/v1663210261/bg2_m6wgnr.webp);
+    @apply absolute left-1/2 top-1/2 z-[-1] mx-auto h-full w-full -translate-x-1/2 -translate-y-1/2 rounded-[30px] bg-[#555E69] bg-cover bg-center;
   }
 
   .join-btn {

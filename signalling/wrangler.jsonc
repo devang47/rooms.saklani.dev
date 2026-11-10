@@ -1,0 +1,14 @@
+{
+  "name": "rooms-signalling",
+  "main": "index.js",
+  "compatibility_date": "2026-11-01",
+  "durable_objects": {
+    "bindings": [{ "name": "SIGNAL", "class_name": "Signal" }],
+  },
+  // SQLite-backed Durable Objects are available on the free plan.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Signal"] }],
+  "vars": {
+    // Comma-separated. Add "https://*.<project>.pages.dev" for preview builds.
+    "ALLOWED_ORIGINS": "https://rooms.saklani.dev",
+  },
+}

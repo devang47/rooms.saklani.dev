@@ -1,7 +1,8 @@
-import { analytics, app } from "../utils/config";
+import { app, ensureSignedIn } from "../utils/config";
 import {
   doc,
   addDoc,
+  connectFirestoreEmulator,
   setDoc,
   getDoc,
   getFirestore,
@@ -10,52 +11,26 @@ import {
   orderBy,
   deleteDoc,
   onSnapshot,
-  Timestamp,
   getDocs,
 } from "firebase/firestore";
-import { logEvent } from "firebase/analytics";
 
-// import {  } from "firebase/firestore/lite";
-
-import CryptoJS from "crypto-js";
-import { encrypt } from "./crypt";
-import { roomMessages } from "$stores";
-import { getStorage, listAll, ref, deleteObject } from "firebase/storage";
+import { decrypt, deriveRoom, encrypt, generateRoomCode } from "./crypt";
+import { roomMessages } from "#stores";
 
 const db = getFirestore(app);
-const storage = getStorage(app);
 
-export const getRand = (() => {
-  const gen = (min: number, max: number) =>
-    max++ && [...Array(max - min)].map((s, i) => String.fromCharCode(min + i));
-
-  const sets = {
-    num: gen(48, 57),
-    alphaLower: gen(97, 122),
-    alphaUpper: gen(65, 90),
-    special: [...``],
-  };
-
-  function* iter(len: number, set: any) {
-    if (set.length < 1) set = Object.values(sets).flat();
-    for (let i = 0; i < len; i++) yield set[(Math.random() * set.length) | 0];
-  }
-
-  return Object.assign(
-    (len: number, ...set: any) => [...iter(len, set.flat())].join(""),
-    sets,
-  );
-})();
+if (import.meta.env.VITE_USE_EMULATOR) {
+  connectFirestoreEmulator(db, "127.0.0.1", 8080);
+}
 
 export const createRoom = async () => {
-  const roomId = getRand(6).toUpperCase();
-  const cryptedRoomId = CryptoJS.SHA512(roomId).toString(CryptoJS.enc.Hex);
+  const roomId = generateRoomCode();
+  const { id } = await deriveRoom(roomId);
 
-  await setDoc(doc(db, "rooms", cryptedRoomId), {
+  await ensureSignedIn();
+  await setDoc(doc(db, "rooms", id), {
     timestamp: new Date().getTime(),
   });
-
-  logEvent(analytics, "room_created");
 
   return roomId;
 };
@@ -67,88 +42,80 @@ export const addMessage = async ({
   roomId: string;
   message: string;
 }) => {
-  const cryptedKey = CryptoJS.SHA512(roomId).toString(CryptoJS.enc.Hex);
-  const cryptedDeviceDetails = CryptoJS.SHA256(navigator.userAgent).toString(
-    CryptoJS.enc.Hex,
-  );
+  const { id, key } = await deriveRoom(roomId);
+  const user = await ensureSignedIn();
 
-  const encryptedMessage = encrypt(cryptedKey, message);
-
-  await addDoc(collection(db, "rooms", cryptedKey, "data"), {
-    data: encryptedMessage,
+  await addDoc(collection(db, "rooms", id, "data"), {
+    data: await encrypt(key, message),
     timestamp: new Date().getTime(),
-    device: cryptedDeviceDetails,
+    device: user.uid,
   });
-
-  logEvent(analytics, "message_pushed");
 };
 
 export const getRoomMessages = async (
   roomId: string,
-  scrollToBottom: () => void,
+  onUpdate: (first: boolean) => void,
 ) => {
-  const cryptedKey = CryptoJS.SHA512(roomId).toString(CryptoJS.enc.Hex);
+  const { id, key } = await deriveRoom(roomId);
 
-  const dataCollection = collection(db, "rooms", cryptedKey, "data");
+  const dataCollection = collection(db, "rooms", id, "data");
 
   const dataQuery = query(dataCollection, orderBy("timestamp"));
 
-  onSnapshot(dataQuery, (snapshot) => {
-    roomMessages.set(snapshot.docs.map((doc) => doc.data()) || []);
+  // Messages are decrypted before they render, so each bubble appears at its
+  // final size, and each message is decrypted only once.
+  const plaintext = new Map<string, Promise<string>>();
+  const read = (docId: string, ciphertext: string) => {
+    if (!plaintext.has(docId)) {
+      plaintext.set(
+        docId,
+        decrypt(key, ciphertext).catch(() => "Unable to decrypt this message"),
+      );
+    }
+    return plaintext.get(docId)!;
+  };
 
-    setTimeout(() => {
-      scrollToBottom();
-    }, 100);
+  let first = true;
+  let latest = 0;
+  return onSnapshot(dataQuery, async (snapshot) => {
+    const version = ++latest;
+    const messages = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        return { ...data, data: await read(doc.id, data.data) };
+      }),
+    );
+    // A newer snapshot may have finished first; never go back to an older one.
+    if (version !== latest) return;
+    roomMessages.set(messages);
+    const isFirst = first;
+    first = false;
+    // Lets the new messages render before the page measures or scrolls.
+    setTimeout(() => onUpdate(isFirst), 50);
   });
 };
 
-export const checkIfRoomExists = async (roomId: string) =>
-  new Promise((resolve, reject) => {
-    roomId = roomId.toUpperCase();
+export const checkIfRoomExists = async (roomId: string) => {
+  const { id } = await deriveRoom(roomId);
 
-    const cryptedKey = CryptoJS.SHA512(roomId).toString(CryptoJS.enc.Hex);
-
-    var docRef = doc(db, "rooms", cryptedKey);
-
-    getDoc(docRef)
-      .then((doc) => {
-        if (doc.exists()) {
-          resolve(doc.data());
-        } else {
-          resolve(false);
-        }
-      })
-      .catch((error) => {
-        reject("Error getting document: " + error.message);
-      });
-
-    logEvent(analytics, "check_for_room_existance");
-  });
+  const room = await getDoc(doc(db, "rooms", id));
+  return room.exists() ? room.data() : false;
+};
 
 export const deleteRoom = async (roomId: string) => {
-  roomId = roomId.toUpperCase();
-  const cryptedKey = CryptoJS.SHA512(roomId).toString(CryptoJS.enc.Hex);
+  const { id: cryptedKey } = await deriveRoom(roomId);
+  await ensureSignedIn();
 
-  const filesRef = ref(storage, cryptedKey + "/");
-  const files = await listAll(filesRef);
-
-  files.items.forEach(async (e) => {
-    // @ts-ignore
-    let path = e._location.path;
-
-    const filesRef = ref(storage, path);
-    await deleteObject(filesRef);
-  });
+  const { deleteRoomFiles } = await import("./storage");
+  await deleteRoomFiles(cryptedKey);
 
   const docRef = doc(db, "rooms", cryptedKey);
 
   const q = query(collection(db, "rooms", cryptedKey, "data"));
   const querySnapshot = await getDocs(q);
 
-  querySnapshot.forEach(async (doData) => {
-    await deleteDoc(doc(db, "rooms", cryptedKey, "data", doData.id));
-  });
-
+  await Promise.all(
+    querySnapshot.docs.map((message) => deleteDoc(message.ref)),
+  );
   await deleteDoc(docRef);
-  logEvent(analytics, "room_deleted");
 };

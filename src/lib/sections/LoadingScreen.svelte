@@ -1,11 +1,12 @@
 <script>
+  import { easeOut, reduceMotion } from "#utils/motion.ts";
   import { fade } from "svelte/transition";
   import LoadingBar from "./LoadingBar.svelte";
-  import { loadingUpload } from "$stores";
+  import { loadingUpload } from "#stores";
 </script>
 
 <section
-  transition:fade={{ duration: 0.3 }}
+  transition:fade|global={{ duration: 150, easing: easeOut }}
   class="bg-white fixed inset-0 w-full h-full flex items-center justify-center z-50"
 >
   {#if $loadingUpload}

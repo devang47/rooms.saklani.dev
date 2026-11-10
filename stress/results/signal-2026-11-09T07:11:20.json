@@ -1,0 +1,103 @@
+{
+  "target": "ws://127.0.0.1:8791",
+  "candidates": 5,
+  "results": [
+    {
+      "scenario": "many rooms",
+      "rooms": 1000,
+      "usersPerRoom": 2,
+      "peers": 2000,
+      "connected": 2000,
+      "connectSecs": 1.17,
+      "connectsPerSec": 1714,
+      "openMs": {
+        "p50": 110.7,
+        "p95": 154.6,
+        "p99": 160,
+        "max": 164.9
+      },
+      "offerToAnswerMs": {
+        "p50": 366.3,
+        "p95": 414.6,
+        "p99": 416.2,
+        "max": 416.5
+      },
+      "candidateRelayMs": {
+        "p50": 521.3,
+        "p95": 936.5,
+        "p99": 963.8,
+        "max": 970.9
+      },
+      "messagesRelayed": 7000,
+      "messagesLost": 0,
+      "messagesPerSec": 4962,
+      "errors": {
+        "closed 1006": 2000
+      }
+    },
+    {
+      "scenario": "big room",
+      "rooms": 1,
+      "usersPerRoom": 500,
+      "peers": 500,
+      "connected": 500,
+      "connectSecs": 0.34,
+      "connectsPerSec": 1460,
+      "openMs": {
+        "p50": 118.4,
+        "p95": 168.7,
+        "p99": 169.6,
+        "max": 169.9
+      },
+      "offerToAnswerMs": {
+        "p50": 110.9,
+        "p95": 126.1,
+        "p99": 127.2,
+        "max": 127.5
+      },
+      "candidateRelayMs": {
+        "p50": 217.7,
+        "p95": 457.5,
+        "p99": 463.3,
+        "max": 464.3
+      },
+      "messagesRelayed": 3493,
+      "messagesLost": 0,
+      "messagesPerSec": 5837,
+      "errors": {
+        "closed 1006": 500
+      }
+    },
+    {
+      "scenario": "mixed",
+      "rooms": 200,
+      "usersPerRoom": 10,
+      "peers": 2000,
+      "connected": 2000,
+      "connectSecs": 2.08,
+      "connectsPerSec": 962,
+      "openMs": {
+        "p50": 134.2,
+        "p95": 768.6,
+        "p99": 787.9,
+        "max": 835.9
+      },
+      "offerToAnswerMs": {
+        "p50": 671.4,
+        "p95": 1060.8,
+        "p99": 1075.6,
+        "max": 1078.4
+      },
+      "candidateRelayMs": {
+        "p50": 1219.2,
+        "p95": 1745.8,
+        "p99": 1805.3,
+        "max": 1815.8
+      },
+      "messagesRelayed": 12600,
+      "messagesLost": 0,
+      "messagesPerSec": 4333,
+      "errors": {}
+    }
+  ]
+}

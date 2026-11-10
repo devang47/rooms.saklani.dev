@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Demo values: the tests run against the Firebase emulators and a local
+# signalling server, never the real project.
+env:
+  VITE_API_KEY: demo
+  VITE_AUTH_DOMAIN: demo-rooms.firebaseapp.com
+  VITE_PROJECT_ID: demo-rooms
+  VITE_STORAGE_BUCKET: demo-rooms.appspot.com
+  VITE_SENDER_ID: "0"
+  VITE_APP_ID: demo
+  VITE_PEERJS_HOST: peer.example.com
+  VITE_PEERJS_PORT: "443"
+  WRANGLER_SEND_METRICS: "false"
+
+jobs:
+  check:
+    name: Types, unit tests, build and performance budget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm check
+      - run: pnpm test
+      - run: pnpm build
+      - name: Lighthouse budget
+        run: npx -y @lhci/cli@0.15 autorun
+
+  rules:
+    name: Database rules and cleanup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: pnpm install --frozen-lockfile
+      - run: npx -y yarn@1 install --frozen-lockfile --cwd firebase-functions
+      - run: pnpm test:rules
+
+  signalling:
+    name: P2P signalling server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - run: npm run test:signal
+
+  e2e:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:test
+      # Uses the Chrome that GitHub's Ubuntu runners come with.
+      - run: pnpm test:e2e

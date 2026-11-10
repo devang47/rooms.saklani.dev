@@ -1,80 +1,108 @@
 <script lang="ts">
-import { onMount } from "svelte";
-import CryptoJS from "crypto-js";
-import { decrypt } from "$helpers/crypt";
-import { addNotification } from "$utils/notifications";
-import { scale } from "svelte/transition";
-import CopyIcon from "$lib/icons/CopyIcon.svelte";
-import { connectionState } from "$stores";
+  import { addNotification } from "#utils/notifications.ts";
+  import CopyIcon from "#lib/icons/CopyIcon.svelte";
+  import { connectionState, user } from "#stores";
+  import { linkify, uploadsPrefix } from "#utils/format.ts";
 
-export let messageData: RelayMessage;
-export let roomId = "";
-export let encrypted = false;
-export let showMetadata = false;
-
-let sameDevice = false;
-let message = "";
-
-onMount(async () => {
-  if (!encrypted) {
-    message = messageData.data;
-    sameDevice = messageData.deviceId === $connectionState.id;
-    return;
+  interface Props {
+    messageData: RelayMessage;
+    // Room messages compare against the signed-in user, P2P ones the peer ID.
+    encrypted?: boolean;
+    showMetadata?: boolean;
+    // False for messages that were already there when the chat opened.
+    enter?: boolean;
   }
 
-  const currentDeviceDetails = CryptoJS.SHA256(navigator.userAgent).toString(
-    CryptoJS.enc.Hex,
+  let {
+    messageData,
+    encrypted = false,
+    showMetadata = false,
+    enter = true,
+  }: Props = $props();
+
+  const message = $derived(messageData.data);
+
+  let sameDevice = $derived(
+    encrypted
+      ? messageData.device === $user?.uid
+      : messageData.deviceId === $connectionState.id,
   );
 
-  if (currentDeviceDetails === messageData.device) {
-    sameDevice = true;
-  }
+  const parts = $derived(linkify(message, uploadsPrefix()));
+  const time = $derived(
+    new Date(messageData.timestamp).toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+  );
 
-  const cryptedKey = CryptoJS.SHA512(roomId).toString(CryptoJS.enc.Hex);
-
-  message = decrypt(cryptedKey, messageData.data);
-});
-
-let done = false;
-const copyText = () => {
-  navigator.clipboard.writeText(message);
-  done = true;
-  addNotification("Copied to clipboard!", false);
-};
+  let copied = $state(false);
+  let resetCopied: ReturnType<typeof setTimeout>;
+  const copyText = () => {
+    navigator.clipboard.writeText(message);
+    copied = true;
+    clearTimeout(resetCopied);
+    resetCopied = setTimeout(() => (copied = false), 1500);
+    addNotification("Copied to clipboard!", false);
+  };
 </script>
 
 <div
   class="message-item"
-  transition:scale={{ start: 0.9, opacity: 0.8 }}
+  class:enter
   class:right-aligned={sameDevice}
   class:left-aligned={!sameDevice}
 >
-  <p class="w-full font-medium">{message}</p>
+  <p class="w-full font-medium">
+    {#each parts as part}{#if "text" in part}{part.text}{:else if part.image}<a
+          href={part.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          ><img
+            src={part.href}
+            alt="Shared in the room"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            class="my-1 block max-h-64 rounded-lg"
+          /></a
+        >{:else}<a
+          href={part.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={part.name ? part.href : undefined}>{part.name ?? part.href}</a
+        >{/if}{/each}
+  </p>
 
-  {#if showMetadata}
-    <div class="mt-2 flex items-center gap-2 text-xs opacity-50">
-      <div class="">
-        {messageData.deviceId}
-      </div>
+  <div class="mt-2 flex items-center gap-2 text-xs opacity-50">
+    {#if showMetadata}
+      <div>{messageData.deviceId}</div>
       |
-      <div class="">
-        {new Date(messageData.timestamp).toLocaleTimeString("en-US", {
-          hour12: true,
-          hour: "numeric",
-          minute: "numeric",
-        })}
-      </div>
-    </div>
-  {/if}
+    {/if}
+    <time datetime={new Date(messageData.timestamp).toISOString()}>{time}</time>
+  </div>
 
   <button
     aria-label="copy text"
-    class:done={done}
-    on:click={copyText}
+    data-copied={copied || undefined}
+    onclick={copyText}
     title="copy text"
     class="copy-btn"
   >
     <div class="sr-only">copy text</div>
-    <CopyIcon />
+    <span class="copy-icon"><CopyIcon /></span>
+    <svg
+      class="check-icon"
+      viewBox="0 0 18 22"
+      fill="none"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      ><path
+        d="M2 12l5 5L16 6"
+        stroke="#fff"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      /></svg
+    >
   </button>
 </div>

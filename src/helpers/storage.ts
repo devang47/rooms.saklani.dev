@@ -1,41 +1,52 @@
-import { loading, loadingUpload } from "$stores";
+import { loading, loadingUpload } from "#stores";
 import {
-  ref,
-  uploadBytesResumable,
+  connectStorageEmulator,
+  deleteObject,
   getDownloadURL,
   getStorage,
+  listAll,
+  ref,
+  uploadBytesResumable,
 } from "firebase/storage";
-import { app } from "../utils/config";
+import { app, ensureSignedIn } from "../utils/config";
 import { addNotification } from "../utils/notifications";
-import CryptoJS from "crypto-js";
-import { gsap } from "gsap";
+import { deriveRoom } from "./crypt";
 
-export const uploadFile = (roomId: string, file: any) =>
-  new Promise((resolve, reject) => {
-    const cryptedKey = CryptoJS.SHA512(roomId).toString(CryptoJS.enc.Hex);
+const storage = getStorage(app);
 
-    const storage = getStorage(app);
-    const storageRef = ref(storage, cryptedKey + "/" + file.name);
+if (import.meta.env.VITE_USE_EMULATOR) {
+  connectStorageEmulator(storage, "127.0.0.1", 9199);
+}
+
+// Keep in sync with the limit in storage.rules.
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
+
+export const uploadFile = async (roomId: string, file: File) => {
+  if (file.size > MAX_FILE_BYTES) {
+    addNotification("File size exceeds 20mb limit!", true);
+    throw new Error("File too large");
+  }
+
+  const { id } = await deriveRoom(roomId);
+  await ensureSignedIn();
+
+  return new Promise((resolve, reject) => {
+    // The UUID stops two files with the same name from colliding, because the
+    // storage rules don't allow overwrites.
+    const storageRef = ref(
+      storage,
+      `${id}/${crypto.randomUUID()}-${file.name}`,
+    );
 
     const uploadTask = uploadBytesResumable(storageRef, file);
     uploadTask.on(
       "state_changed",
       (snapshot) => {
-        if (snapshot.totalBytes > 204857600) {
-          uploadTask.cancel();
-          loading.set(false);
-          loadingUpload.set(false);
-
-          addNotification("File size exceeds 20mb limit!", true);
-          return;
-        }
-
         const progress =
           (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
 
-        gsap.to(".loading-bar-width", {
-          width: Math.max(progress, 30) + "%",
-        });
+        const bar = document.querySelector<HTMLElement>(".loading-bar-width");
+        if (bar) bar.style.width = Math.max(progress, 30) + "%";
       },
       (error) => {
         loading.set(false);
@@ -52,27 +63,9 @@ export const uploadFile = (roomId: string, file: any) =>
       },
     );
   });
+};
 
-export const minifyURL = async (e: string) =>
-  new Promise((resolve, reject) => {
-    var data = {
-      url: e,
-      domain: "tiny.one",
-    };
-
-    fetch("https://api.tinyurl.com/create", {
-      method: "post",
-      headers: {
-        accept: "application/json",
-        "content-Type": "application/json",
-        authorization: `Bearer ${import.meta.env.VITE_SHORTIO_API_KEY}`,
-      },
-      body: JSON.stringify(data),
-    })
-      .then(function (response) {
-        return response.json();
-      })
-      .then(function (data) {
-        resolve(data.data.tiny_url);
-      });
-  });
+export const deleteRoomFiles = async (id: string) => {
+  const files = await listAll(ref(storage, id + "/"));
+  await Promise.all(files.items.map(deleteObject));
+};

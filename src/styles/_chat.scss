@@ -1,10 +1,11 @@
 section.chat-ui {
   @apply mx-auto flex h-screen w-full items-center justify-center bg-dark bg-cover bg-center px-3 py-4 text-center sm:px-4 md:px-14 md:py-8 md:pb-14;
-  background-image: url(https://res.cloudinary.com/dyn3sdtfm/image/upload/q_80/v1663210261/bg2_m6wgnr.webp);
 
   .container {
-    @apply relative mx-auto h-[90vh] w-full max-w-[1000px] rounded-[30px] bg-[#ebebeb] bg-cover bg-center md:rounded-[40px];
-    background-image: url(https://res.cloudinary.com/dyn3sdtfm/image/upload/v1663409445/bg-3_ttnqmb.webp);
+    @apply relative mx-auto h-[90vh] w-full max-w-[1000px] rounded-[30px] md:rounded-[40px];
+    background-color: #ececec;
+    background-image: url("/images/grain-light.webp");
+    background-size: 256px;
     box-shadow:
       0px 0px 1.2px rgba(0, 0, 0, 0.017),
       0px 0px 2.8px rgba(0, 0, 0, 0.024),
@@ -17,7 +18,7 @@ section.chat-ui {
   }
 
   header {
-    background-image: url(https://res.cloudinary.com/dyn3sdtfm/image/upload/c_scale,w_2200/v1663294019/Group_7_jjdeln.webp);
+    background-image: url("/images/header.webp");
     @apply flex w-full items-center justify-between gap-3 rounded-t-[30px] bg-dark bg-cover bg-center px-4 py-4 sm:px-6 md:px-12;
 
     h1 {
@@ -43,6 +44,11 @@ section.chat-ui {
 
 .btn-secondary {
   @apply relative flex cursor-pointer items-center justify-center gap-1 overflow-hidden rounded bg-[#D9D9D9] px-4 py-1 text-[15px] font-extrabold text-[#38404A];
+  transition: scale 120ms var(--ease-out);
+
+  &:not(:disabled):active {
+    scale: 0.97;
+  }
 
   box-shadow:
     0px 6px 25px rgba(0, 0, 0, 0.11),
@@ -87,7 +93,14 @@ section.chat-ui {
 
   .buttons {
     .button {
-      @apply flex cursor-pointer items-center justify-center rounded-full bg-dark px-3 py-3 duration-100 hover:bg-dark/80;
+      @apply flex cursor-pointer items-center justify-center rounded-full bg-dark px-3 py-3 hover:bg-dark/80;
+      transition:
+        background-color 100ms ease,
+        scale 120ms var(--ease-out);
+
+      &:active {
+        scale: 0.95;
+      }
       box-shadow:
         0px 0.2px 1.2px rgba(0, 0, 0, 0.034),
         0px 0.5px 2.8px rgba(0, 0, 0, 0.048),
@@ -135,6 +148,31 @@ section.chat-ui {
 
     svg {
       @apply w-3 sm:w-4;
+    }
+
+    .copy-icon,
+    .check-icon {
+      transition:
+        opacity 150ms var(--ease-out),
+        scale 150ms var(--ease-out);
+    }
+
+    .check-icon {
+      @apply absolute;
+      opacity: 0;
+      scale: 0.8;
+    }
+
+    &[data-copied] {
+      .copy-icon {
+        opacity: 0;
+        scale: 0.8;
+      }
+
+      .check-icon {
+        opacity: 1;
+        scale: 1;
+      }
     }
   }
 
@@ -192,5 +230,30 @@ section.chat-ui {
     code {
       @apply whitespace-nowrap rounded bg-dark/10 p-1 px-1 text-xs text-dark/70 md:text-sm;
     }
+  }
+}
+
+// Shown when messages arrive while the reader is scrolled up.
+.new-messages {
+  @apply absolute bottom-[190px] left-1/2 z-10 rounded-full bg-dark px-4 py-1.5 font-mono text-xs font-bold text-light;
+  translate: -50% 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 200ms var(--ease-out),
+    translate 200ms var(--ease-out);
+  box-shadow:
+    0px 0.9px 5.3px rgba(0, 0, 0, 0.06),
+    0px 2.9px 17.5px rgba(0, 0, 0, 0.086),
+    0px 7px 42px rgba(0, 0, 0, 0.12);
+
+  &[data-visible] {
+    translate: -50% 0;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    translate: -50% 0;
   }
 }

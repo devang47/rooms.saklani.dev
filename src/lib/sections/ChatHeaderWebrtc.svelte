@@ -1,30 +1,49 @@
 <script lang="ts">
-import { connectionState, relayMessages } from "$stores";
-import { addNotification } from "$utils/notifications";
-import { PeerConnection } from "$helpers/peer";
-import { stopPeerSession } from "$helpers/peer/actions";
-import { startPeer } from "$helpers/peer/peerActions";
+  import { connectionState, relayMessages } from "#stores";
+  import { addNotification } from "#utils/notifications.ts";
+  import { PeerConnection } from "#helpers/peer/index.ts";
+  import { stopPeerSession } from "#helpers/peer/actions.ts";
+  import { startPeer } from "#helpers/peer/peerActions.ts";
+  import Modal from "../sections/Modal.svelte";
+  import { tick } from "svelte";
 
-const copyText = () => {
-  if (!$connectionState.id) return;
-  navigator.clipboard.writeText($connectionState.id);
+  let inviteOpen = $state(false);
+  let canvasEl = $state<HTMLCanvasElement>();
+  const inviteLink = $derived(
+    `${location.origin}/p2p?connect=${encodeURIComponent($connectionState.id ?? "")}`,
+  );
 
-  addNotification("Copied to clipboard!", false);
-};
+  const openInvite = async () => {
+    inviteOpen = true;
+    const [{ default: QRCode }] = await Promise.all([import("qrcode"), tick()]);
+    QRCode.toCanvas(canvasEl!, inviteLink, { width: 300 });
+  };
 
-const handleStopServer = async () => {
-  await PeerConnection.closePeerSession();
-  relayMessages.set(new Map());
+  const copyInvite = () => {
+    navigator.clipboard.writeText(inviteLink);
+    addNotification("Invite link copied!", false);
+  };
 
-  stopPeerSession();
-};
+  const copyText = () => {
+    if (!$connectionState.id) return;
+    navigator.clipboard.writeText($connectionState.id);
+
+    addNotification("Copied to clipboard!", false);
+  };
+
+  const handleStopServer = async () => {
+    await PeerConnection.closePeerSession();
+    relayMessages.set(new Map());
+
+    stopPeerSession();
+  };
 </script>
 
-<header class="!rounded-t-lg md:!px-6">
+<header class="flex-wrap !rounded-t-lg md:!px-6">
   <a href="/">
     <h1 class="sans cursor-pointer whitespace-nowrap">P2P Rooms</h1>
   </a>
-  <div class="flex items-center gap-3 lg:gap-5">
+  <div class="flex flex-wrap items-center justify-end gap-3 lg:gap-5">
     {#if $connectionState.loading}
       <div class="px-4">
         <svg
@@ -47,9 +66,16 @@ const handleStopServer = async () => {
 
     {#if $connectionState.id}
       <button
+        class="relative flex cursor-pointer items-center justify-center gap-1 overflow-hidden rounded bg-[#D9D9D9] px-3 py-1.5 text-[15px] text-sm font-extrabold text-[#38404A] md:px-4 md:py-2"
+        onclick={openInvite}
+      >
+        Invite
+      </button>
+
+      <button
         aria-label="copy room id"
         class="relative flex cursor-pointer items-center justify-center gap-1 overflow-hidden rounded bg-[#D9D9D9] px-3 py-1.5 text-[15px] text-sm font-extrabold text-[#38404A] md:px-4 md:py-2"
-        on:click={copyText}
+        onclick={copyText}
       >
         {$connectionState.id}
       </button>
@@ -59,7 +85,7 @@ const handleStopServer = async () => {
       aria-label="toggle peerjs server"
       class="relative flex cursor-pointer items-center justify-center gap-1 overflow-hidden rounded bg-[#D9D9D9] px-3 py-1.5 text-[15px] text-sm font-extrabold text-[#38404A] md:px-4 md:py-2"
       disabled={$connectionState.loading}
-      on:click={$connectionState.started ? handleStopServer : startPeer}
+      onclick={$connectionState.started ? handleStopServer : startPeer}
     >
       {#if $connectionState.started}
         Stop
@@ -69,3 +95,15 @@ const handleStopServer = async () => {
     </button>
   </div>
 </header>
+
+{#if inviteOpen}
+  <Modal onClose={() => (inviteOpen = false)}>
+    <canvas class="w-full" bind:this={canvasEl}></canvas>
+    <p class="mt-2 text-center text-xs text-dark/70">
+      Scan, or send this link, to connect straight to you.
+    </p>
+    <button class="btn-secondary mx-auto my-3 !text-sm" onclick={copyInvite}
+      >Copy invite link</button
+    >
+  </Modal>
+{/if}

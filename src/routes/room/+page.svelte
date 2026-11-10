@@ -1,101 +1,67 @@
 <script lang="ts">
-import { loading, roomData } from "$stores";
-import { checkIfRoomExists } from "$helpers/Room";
-import Button from "$lib/components/Button.svelte";
-import CircleAnimation from "$lib/components/CircleAnimation.svelte";
-import ArrowRight from "$lib/icons/ArrowRight.svelte";
-import DashedUnderline from "$lib/icons/DashedUnderline.svelte";
-import CurvedArrowLine from "$lib/icons/CurvedArrowLine.svelte";
-import { onMount } from "svelte";
-import { fly } from "svelte/transition";
-import { goto } from "$app/navigation";
-import { addNotification } from "$utils/notifications";
-import gsap, { Power3 } from "gsap";
-import FloatingImages from "$lib/sections/FloatingImages.svelte";
+  import { easeOut, reduceMotion } from "#utils/motion.ts";
+  import { roomData } from "#stores";
+  import Button from "#lib/components/Button.svelte";
+  import CircleAnimation from "#lib/components/CircleAnimation.svelte";
+  import ArrowRight from "#lib/icons/ArrowRight.svelte";
+  import DashedUnderline from "#lib/icons/DashedUnderline.svelte";
+  import CurvedArrowLine from "#lib/icons/CurvedArrowLine.svelte";
+  import { fly } from "svelte/transition";
+  import { goto, preloadCode } from "$app/navigation";
+  import { addNotification } from "#utils/notifications.ts";
+  import { coverPage } from "#utils/transitions.ts";
+  import FloatingImages from "#lib/sections/FloatingImages.svelte";
 
-let inputVal = "";
-let formLoading = "false";
-let roomExists = true;
-const joinRoom = async () => {
-  if (!inputVal || inputVal.length < 6) return;
-  formLoading = "true";
+  let inputVal = $state("");
+  let formLoading = $state("false");
+  let roomExists = $state(true);
+  const joinRoom = async () => {
+    if (!inputVal || inputVal.length < 6) return;
+    formLoading = "true";
 
-  $roomData = await checkIfRoomExists(inputVal);
-  if (!$roomData) {
-    formLoading = "false";
-    roomExists = false;
+    const { checkIfRoomExists } = await import("#helpers/Room.ts");
+    $roomData = await checkIfRoomExists(inputVal);
+    if (!$roomData) {
+      formLoading = "false";
+      roomExists = false;
 
-    addNotification("404 Not found!", true);
+      addNotification("404 Not found!", true);
 
-    return null;
-  }
+      return null;
+    }
 
-  roomExists = true;
-  formLoading = "complete";
+    roomExists = true;
+    formLoading = "complete";
 
-  gsap.to(".moveable-block", {
-    opacity: 0,
-    duration: 0.1,
-  });
+    document
+      .querySelectorAll(".moveable-block")
+      .forEach((block) =>
+        block.animate({ opacity: 0 }, { duration: 100, fill: "forwards" }),
+      );
 
-  gsap.to(".arrow-button", {
-    scale: 100,
-    duration: 0.3,
-    ease: "linear",
-  });
+    await document
+      .querySelector(".arrow-button")!
+      .animate(
+        { scale: [1, 100] },
+        { duration: 300, easing: "linear", fill: "forwards" },
+      ).finished;
 
-  setTimeout(() => {
     goto("/room/" + inputVal);
-  }, 800);
-};
+  };
 
-onMount(() => {
-  loading.set(false);
-
-  const tl = gsap.timeline({});
-
-  tl.to(".bg", {
-    delay: 0.2,
-    width: "100%",
-    duration: 0.8,
-    ease: Power3.easeOut,
-  })
-    .to(".content", {
-      delay: -0.5,
-      opacity: 1,
-      duration: 0.4,
-    })
-    .to(".moveable-block", {
-      delay: -0.6,
-      x: 0,
-      y: 0,
-      opacity: 1,
-      duration: 0.4,
-    });
-});
-
-const handleGotoCreatePage = () => {
-  gsap
-    .to(".transition-join-page", {
-      height: "100%",
-      duration: 0.7,
-      ease: Power3.easeOut,
-    })
-    .then(() => {
-      setTimeout(() => {
-        goto("/");
-      }, 100);
-    });
-};
+  const handleGotoCreatePage = async () => {
+    await coverPage();
+    goto("/");
+  };
 </script>
 
 <FloatingImages />
 
-<div class="transition-join-page" />
+<div class="transition-join-page"></div>
 
 <section class="join-room-page">
   <div class="container">
-    <div class="content opacity-0">
+    <div class="content">
       <div class="relative mx-auto w-fit">
         <h1 class="sans">Join Room</h1>
         <span
@@ -104,10 +70,17 @@ const handleGotoCreatePage = () => {
         </span>
       </div>
 
-      <form action="#" on:submit|preventDefault={joinRoom}>
+      <form
+        action="#"
+        onsubmit={(event) => {
+          event.preventDefault();
+          joinRoom();
+        }}
+      >
         <div class="roomid-input">
           <input
             bind:value={inputVal}
+            onfocus={() => preloadCode("/room/[id]")}
             class=""
             placeholder="xxxxxx"
             maxlength="6"
@@ -130,7 +103,15 @@ const handleGotoCreatePage = () => {
             {#if formLoading === "true"}
               <CircleAnimation class="w-[80px]" />
             {:else if !roomExists}
-              <span in:fly={{ y: 12 }}> Not Found </span>
+              <span
+                in:fly|global={{
+                  y: reduceMotion ? 0 : 12,
+                  duration: 200,
+                  easing: easeOut,
+                }}
+              >
+                Not Found
+              </span>
             {/if}
 
             <span
@@ -145,7 +126,7 @@ const handleGotoCreatePage = () => {
               aria-label="create a new room"
               type="button"
               title="Create room"
-              on:click={handleGotoCreatePage}
+              onclick={handleGotoCreatePage}
               class=""
             >
               Create room
@@ -155,6 +136,6 @@ const handleGotoCreatePage = () => {
       </form>
     </div>
 
-    <div class="bg" />
+    <div class="bg"></div>
   </div>
 </section>

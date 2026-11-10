@@ -8,7 +8,7 @@ export function clickOutside(node: any, callbackFunction: () => void) {
   document.addEventListener("click", handleClick, true);
 
   return {
-    update(newCallbackFunction) {
+    update(newCallbackFunction: () => void) {
       callbackFunction = newCallbackFunction;
     },
     destroy() {

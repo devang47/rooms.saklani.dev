@@ -1,11 +1,12 @@
 import { PeerConnection } from ".";
-import { addNotification } from "$utils/notifications";
+import { addNotification } from "#utils/notifications.ts";
 import {
   connectionListLoading,
   handleReceiveData,
   startPeerSession,
 } from "./actions";
 import { addConnectionList, removeConnectionList } from "./actions";
+import { failTransfers } from "./files";
 
 export const startPeer = async () => {
   let timeout: NodeJS.Timeout | null = null;
@@ -27,15 +28,15 @@ export const startPeer = async () => {
 
     PeerConnection.onIncomingConnection((conn) => {
       const peerId = conn.peer;
-      addNotification("Incoming connection: " + peerId);
       addConnectionList(peerId);
 
       PeerConnection.onConnectionDisconnected(peerId, () => {
         addNotification("Connection closed: " + peerId);
+        failTransfers(peerId);
         removeConnectionList(peerId);
       });
       PeerConnection.onConnectionReceiveData(peerId, (data) => {
-        handleReceiveData(data, id);
+        handleReceiveData(data, peerId);
       });
     });
 

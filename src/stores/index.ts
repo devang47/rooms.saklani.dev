@@ -4,7 +4,7 @@ import { writable } from "svelte/store";
 
 export const roomId = writable<string>();
 export const roomMessages = writable<any>([]);
-export let loading = writable<boolean>(true);
+export let loading = writable<boolean>(false);
 export let loadingUpload = writable<boolean>(false);
 export let notifications = writable<CustomNotification[]>([]);
 export let user = writable<User>();
@@ -33,3 +33,5 @@ export const remoteUserVideoRef = writable<HTMLVideoElement>();
 export const videoCallDialogOpen = writable<boolean>(false);
 
 export const relayMessages = writable<Map<string, RelayMessage[]>>(new Map());
+export const transfers = writable<Record<string, Transfer>>({});
+export const prompts = writable<Prompt[]>([]);

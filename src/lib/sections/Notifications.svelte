@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Notification from "$lib/components/Notification.svelte";
-  import { notifications } from "$stores";
+  import Notification from "#lib/components/Notification.svelte";
+  import { notifications } from "#stores";
 </script>
 
 {#if $notifications.length !== 0}
