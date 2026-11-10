@@ -30,15 +30,7 @@ const check = async (name, fn) => {
 
 const server = spawn(
   "npx",
-  [
-    "-y",
-    "wrangler@4",
-    "dev",
-    "--port",
-    "4173",
-    "--ip",
-    "127.0.0.1",
-  ],
+  ["-y", "wrangler@4", "dev", "--port", "4173", "--ip", "127.0.0.1"],
   {
     cwd: REPO,
     env: { ...process.env, WRANGLER_SEND_METRICS: "false" },
