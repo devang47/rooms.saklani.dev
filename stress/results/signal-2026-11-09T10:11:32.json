@@ -1,0 +1,37 @@
+{
+  "target": "wss://rooms-webrtc-server.onrender.com",
+  "candidates": 5,
+  "results": [
+    {
+      "scenario": "custom",
+      "rooms": 1,
+      "usersPerRoom": 25,
+      "peers": 25,
+      "connected": 25,
+      "connectSecs": 1.31,
+      "connectsPerSec": 19,
+      "openMs": {
+        "p50": 455.2,
+        "p95": 471,
+        "p99": 523.6,
+        "max": 523.6
+      },
+      "offerToAnswerMs": {
+        "p50": 291.9,
+        "p95": 399.9,
+        "p99": 401.9,
+        "max": 401.9
+      },
+      "candidateRelayMs": {
+        "p50": 107,
+        "p95": 188.2,
+        "p99": 188.3,
+        "max": 188.4
+      },
+      "messagesRelayed": 168,
+      "messagesLost": 0,
+      "messagesPerSec": 313,
+      "errors": {}
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "target": "ws://127.0.0.1:8791",
+  "candidates": 5,
+  "results": [
+    {
+      "scenario": "custom",
+      "rooms": 5000,
+      "usersPerRoom": 2,
+      "peers": 10000,
+      "connected": 8066,
+      "connectSecs": 6.18,
+      "connectsPerSec": 1305,
+      "openMs": {
+        "p50": 117.4,
+        "p95": 180,
+        "p99": 1486,
+        "max": 1502.2
+      },
+      "offerToAnswerMs": {
+        "p50": 1513.8,
+        "p95": 1778,
+        "p99": 1790.5,
+        "max": 1793.6
+      },
+      "candidateRelayMs": {
+        "p50": 2045.2,
+        "p95": 3558.1,
+        "p99": 3691.5,
+        "max": 3739.7
+      },
+      "messagesRelayed": 21462,
+      "messagesLost": 0,
+      "messagesPerSec": 3847,
+      "errors": {
+        "socket error": 1934
+      }
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "target": "rooms-saklani-dev",
+  "msgs": 3,
+  "spreadMs": 5000,
+  "results": [
+    {
+      "scenario": "many rooms",
+      "rooms": 50,
+      "usersPerRoom": 2,
+      "clients": 100,
+      "joinSecs": 0.79,
+      "messagesWritten": 300,
+      "writesPerSec": 65,
+      "writeMs": {
+        "p50": 60.3,
+        "p95": 146.3,
+        "p99": 227.2,
+        "max": 263.7
+      },
+      "fanOutMs": {
+        "p50": 68.5,
+        "p95": 155.5,
+        "p99": 230.7,
+        "max": 265.2
+      },
+      "deliveriesExpected": 300,
+      "deliveriesMissed": 0,
+      "failedButDelivered": 0,
+      "billedReads": 600,
+      "errors": {}
+    },
+    {
+      "scenario": "big room",
+      "rooms": 1,
+      "usersPerRoom": 100,
+      "clients": 100,
+      "joinSecs": 0.76,
+      "messagesWritten": 300,
+      "writesPerSec": 24,
+      "writeMs": {
+        "p50": 1449.7,
+        "p95": 3809.1,
+        "p99": 4211.8,
+        "max": 4559.2
+      },
+      "fanOutMs": {
+        "p50": 1423.8,
+        "p95": 3815.8,
+        "p99": 4296.8,
+        "max": 4824.1
+      },
+      "deliveriesExpected": 29700,
+      "deliveriesMissed": 0,
+      "failedButDelivered": 0,
+      "billedReads": 30000,
+      "errors": {}
+    },
+    {
+      "scenario": "mixed",
+      "rooms": 10,
+      "usersPerRoom": 10,
+      "clients": 100,
+      "joinSecs": 0.66,
+      "messagesWritten": 300,
+      "writesPerSec": 65,
+      "writeMs": {
+        "p50": 92.4,
+        "p95": 166.1,
+        "p99": 181,
+        "max": 195.1
+      },
+      "fanOutMs": {
+        "p50": 104.6,
+        "p95": 179.2,
+        "p99": 195.5,
+        "max": 217.4
+      },
+      "deliveriesExpected": 2700,
+      "deliveriesMissed": 0,
+      "failedButDelivered": 0,
+      "billedReads": 3000,
+      "errors": {}
+    }
+  ]
+}

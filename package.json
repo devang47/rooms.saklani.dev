@@ -16,7 +16,8 @@
     "lint": "prettier --check src signalling tests vite.config.ts",
     "format": "prettier --write src signalling tests vite.config.ts",
     "stress:signal": "node stress/signal.mjs",
-    "stress:firestore": "npx -y firebase-tools@15 emulators:exec --only firestore --project demo-rooms \"node stress/firestore.mjs\""
+    "stress:firestore": "npx -y firebase-tools@15 emulators:exec --only firestore --project demo-rooms \"node stress/firestore.mjs\"",
+    "stress:firestore:live": "LIVE=1 node --env-file=.env stress/firestore.mjs"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^4.0.1",

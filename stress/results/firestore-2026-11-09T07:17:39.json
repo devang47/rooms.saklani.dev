@@ -1,0 +1,85 @@
+{
+  "msgs": 5,
+  "spreadMs": 5000,
+  "results": [
+    {
+      "scenario": "many rooms",
+      "rooms": 200,
+      "usersPerRoom": 2,
+      "clients": 400,
+      "joinSecs": 1.74,
+      "messagesWritten": 2000,
+      "writesPerSec": 443,
+      "writeMs": {
+        "p50": 3.3,
+        "p95": 29.7,
+        "p99": 45.6,
+        "max": 78.7
+      },
+      "fanOutMs": {
+        "p50": 4.1,
+        "p95": 30.9,
+        "p99": 46.4,
+        "max": 79.4
+      },
+      "deliveriesExpected": 2000,
+      "deliveriesMissed": 0,
+      "billedReads": 4000,
+      "errors": {}
+    },
+    {
+      "scenario": "big room",
+      "rooms": 1,
+      "usersPerRoom": 150,
+      "clients": 150,
+      "joinSecs": 0.62,
+      "messagesWritten": 531,
+      "writesPerSec": 3,
+      "writeMs": {
+        "p50": 13742.1,
+        "p95": 31308.6,
+        "p99": 36026.8,
+        "max": 82031.4
+      },
+      "fanOutMs": {
+        "p50": 55117.9,
+        "p95": 150865.2,
+        "p99": 157820.9,
+        "max": 161101.4
+      },
+      "deliveriesExpected": 79119,
+      "deliveriesMissed": -927,
+      "billedReads": 80957,
+      "errors": {
+        "permission-denied": 219
+      }
+    },
+    {
+      "scenario": "mixed",
+      "rooms": 30,
+      "usersPerRoom": 10,
+      "clients": 300,
+      "joinSecs": 1.38,
+      "messagesWritten": 660,
+      "writesPerSec": 20,
+      "writeMs": {
+        "p50": 1431,
+        "p95": 2941.7,
+        "p99": 3098.3,
+        "max": 3143.4
+      },
+      "fanOutMs": {
+        "p50": 816,
+        "p95": 2535.2,
+        "p99": 2978.1,
+        "max": 3216.3
+      },
+      "deliveriesExpected": 5940,
+      "deliveriesMissed": -711,
+      "billedReads": 8151,
+      "errors": {
+        "permission-denied": 840
+      }
+    }
+  ]
+}
