@@ -8,6 +8,7 @@ import { chromium } from "playwright-core";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
+import { crc32, deflateSync } from "node:zlib";
 
 const REPO = fileURLToPath(new URL("..", import.meta.url)).replace(/\/$/, "");
 const BASE = "http://127.0.0.1:4173";
@@ -507,6 +508,100 @@ await check("dropping a file uploads it", async () => {
   await a.fill("textarea#input", "");
 });
 
+// A solid grey PNG, far wider than any screen.
+const widePng = (width, height) => {
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length);
+    const body = Buffer.concat([Buffer.from(type), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(body));
+    return Buffer.concat([len, body, crc]);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header[8] = 8; // bit depth, greyscale
+  const row = Buffer.concat([Buffer.from([0]), Buffer.alloc(width, 128)]);
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk("IHDR", header),
+    chunk("IDAT", deflateSync(Buffer.concat(Array(height).fill(row)))),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+};
+
+// Nothing in a chat may make the page scroll or the chat grow past its box.
+const assertChatFits = (page, what) =>
+  page.evaluate((what) => {
+    const fail = (m) => {
+      throw new Error(`${what} at ${innerWidth}x${innerHeight}: ${m}`);
+    };
+    // body is the page's scroller (html and body hide sideways overflow).
+    const page = document.body;
+    if (page.scrollWidth > page.clientWidth)
+      fail(`page is ${page.scrollWidth}px wide`);
+    const list = document.querySelector(".chat-messages-wrapper");
+    if (list.scrollHeight <= list.clientHeight) fail("messages don't scroll");
+    if (list.scrollWidth > list.clientWidth) fail("messages scroll sideways");
+    const edge = list.getBoundingClientRect().right;
+    for (const el of document.querySelectorAll(
+      ".message-item, .message-item img",
+    )) {
+      if (el.getBoundingClientRect().right > edge + 1)
+        fail(
+          `${el.tagName} sticks out by ${el.getBoundingClientRect().right - edge}px`,
+        );
+    }
+    return list.getBoundingClientRect().height;
+  }, what);
+
+await check(
+  "long words, wide images and many messages stay inside the chat",
+  async () => {
+    await a.setInputFiles("#fileinput", {
+      name: "wide.png",
+      mimeType: "image/png",
+      buffer: widePng(3000, 40),
+    });
+    await a.waitForFunction(
+      () => /wide\.png/.test(document.querySelector("textarea#input").value),
+      null,
+      { timeout: 15000 },
+    );
+    await a.click('[aria-label="send message button"]');
+    await send(a, "x".repeat(400));
+    await send(a, `https://example.com/${"long-path/".repeat(40)}`);
+    for (let i = 0; i < 25; i++) await send(a, `filler ${i}`);
+    await msg(a, "filler 24").waitFor({ timeout: 15000 });
+    await a.waitForFunction(
+      () => {
+        const img = document.querySelector(
+          '.message-item img[src*="wide.png"]',
+        );
+        return img?.complete && img.naturalWidth === 3000;
+      },
+      null,
+      { timeout: 15000 },
+    );
+    for (const size of [
+      { width: 1280, height: 720 },
+      { width: 360, height: 640 },
+    ]) {
+      await a.setViewportSize(size);
+      await a.waitForTimeout(200);
+      await assertChatFits(a, "room");
+      // The page itself never scrolls; only the message list does.
+      const [page, view] = await a.evaluate(() => [
+        document.body.scrollHeight,
+        document.body.clientHeight,
+      ]);
+      assert.ok(page <= view, `page ${page}px tall in a ${view}px window`);
+    }
+    await a.setViewportSize({ width: 1280, height: 720 });
+  },
+);
+
 await check("the countdown shows on phones", async () => {
   const c = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -757,6 +852,25 @@ await check(
     assert.equal(await p2.getByText("Message sent successfully").count(), 0);
   },
 );
+
+await check("a long P2P chat scrolls inside a fixed-height box", async () => {
+  const before = await p1.evaluate(
+    () => document.querySelector(".chat-messages-wrapper").clientHeight,
+  );
+  await send(p2, "y".repeat(400));
+  await send(p2, `https://example.com/${"long-path/".repeat(40)}`);
+  for (let i = 0; i < 20; i++) await send(p2, `p2p filler ${i}`);
+  await msg(p1, "p2p filler 19").waitFor({ timeout: 15000 });
+  await p1.waitForTimeout(500);
+  const height = await assertChatFits(p1, "p2p");
+  assert.ok(Math.abs(height - before) <= 1, `the chat grew to ${height}px`);
+  // Following new messages happens inside the box, not by scrolling the page.
+  const gap = await p1.evaluate(() => {
+    const list = document.querySelector(".chat-messages-wrapper");
+    return list.scrollHeight - list.scrollTop - list.clientHeight;
+  });
+  assert.ok(gap < 40, `${gap}px short of the newest message`);
+});
 
 const card = (page, name) => page.getByRole("group", { name: `File ${name}` });
 

@@ -43,7 +43,7 @@
   <a href="/" onclick={() => ($roomMessages = [])}>
     <h1 class="sans cursor-pointer">ChatRooms</h1>
   </a>
-  <div class="flex items-center gap-3 lg:gap-5">
+  <div class="ml-auto flex items-center gap-3 lg:gap-5">
     <div
       class="text-[13px] tabular-nums text-light transition-colors duration-300 sm:text-[15px]"
       class:!text-red-300={urgent}

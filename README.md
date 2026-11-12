@@ -11,14 +11,14 @@ files and video calls, use a peer-to-peer room instead.
 
 ## Two kinds of rooms
 
-|                     | Rooms                                           | Peer-to-peer rooms                         |
-| ------------------- | ----------------------------------------------- | ------------------------------------------ |
-| How it works        | Messages go through Firebase                    | Browsers connect directly over WebRTC      |
-| Devices             | Any number                                      | One connection per chat                    |
-| History             | Kept for 15 minutes, then deleted               | None; nothing is stored                    |
-| Messages            | Encrypted with a key derived from the room code | End-to-end encrypted by WebRTC             |
-| Files               | Up to 20 MB, not encrypted                      | Sent directly, only after the other person accepts |
-| Extras              | Image previews, drag and drop, paste to upload  | Video calls, invite links and QR codes     |
+|              | Rooms                                           | Peer-to-peer rooms                                 |
+| ------------ | ----------------------------------------------- | -------------------------------------------------- |
+| How it works | Messages go through Firebase                    | Browsers connect directly over WebRTC              |
+| Devices      | Any number                                      | One connection per chat                            |
+| History      | Kept for 15 minutes, then deleted               | None; nothing is stored                            |
+| Messages     | Encrypted with a key derived from the room code | End-to-end encrypted by WebRTC                     |
+| Files        | Up to 20 MB, not encrypted                      | Sent directly, only after the other person accepts |
+| Extras       | Image previews, drag and drop, paste to upload  | Video calls, invite links and QR codes             |
 
 ![A peer-to-peer chat with a file waiting to be accepted](docs/p2p.jpg)
 
@@ -27,14 +27,14 @@ files and video calls, use a peer-to-peer room instead.
 The site was rebuilt for speed while keeping its original design. Measured on
 the home page with Lighthouse, mobile settings, median of 3 runs:
 
-| Home page                          | Before   | After  |
-| ---------------------------------- | -------- | ------ |
-| Performance score (simulated)      | 79       | 98     |
-| Performance score (real throttling)| 74       | 100    |
-| Largest Contentful Paint (real throttling) | 4.8 s | 1.3 s |
-| Page weight                        | 1,208 KB | 145 KB |
-| Requests                           | 60       | 29     |
-| JavaScript (compressed)            | 202 KB   | 47 KB  |
+| Home page                                  | Before   | After  |
+| ------------------------------------------ | -------- | ------ |
+| Performance score (simulated)              | 79       | 98     |
+| Performance score (real throttling)        | 74       | 100    |
+| Largest Contentful Paint (real throttling) | 4.8 s    | 1.3 s  |
+| Page weight                                | 1,208 KB | 145 KB |
+| Requests                                   | 60       | 29     |
+| JavaScript (compressed)                    | 202 KB   | 47 KB  |
 
 "Before" is the previous live site. "After" was measured on a local build
 served with compression, so expect some difference on the real CDN. CI
@@ -101,7 +101,9 @@ flowchart LR
 
 ## Running it locally
 
-You need Node 22.17 or later, pnpm, and Java 21 for the Firebase emulators.
+You need Node 24 (see `.node-version`), pnpm 10, and Java 21 for the Firebase
+emulators. Node 25 and later break the Firebase CLI's deploy step, because one
+of `firebase-admin`'s dependencies still uses `SlowBuffer`.
 
 ```bash
 pnpm install
@@ -125,12 +127,12 @@ To run the signalling server locally: `cd signalling && npx wrangler dev`.
 
 ## Tests
 
-| Command            | What it checks                                                |
-| ------------------ | ------------------------------------------------------------- |
-| `pnpm test`        | Encryption and message link parsing                           |
-| `pnpm test:rules`  | Database and storage rules, and room cleanup, on the emulators |
-| `pnpm test:signal` | The signalling server's protocol                              |
-| `pnpm build:test && pnpm test:e2e` | 41 checks in Chrome: rooms, uploads, peer-to-peer chat, files, calls, performance guards |
+| Command                            | What it checks                                                                                                         |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `pnpm test`                        | Encryption and message link parsing                                                                                    |
+| `pnpm test:rules`                  | Database and storage rules, and room cleanup, on the emulators                                                         |
+| `pnpm test:signal`                 | The signalling server's protocol                                                                                       |
+| `pnpm build:test && pnpm test:e2e` | 43 checks in Chrome: rooms, uploads, peer-to-peer chat, files, calls, layout on desktop and phones, performance guards |
 
 CI runs all of them, plus type checks and a Lighthouse budget, on every push
 and pull request.
@@ -142,7 +144,7 @@ and pull request.
   variables above as build variables. `wrangler.jsonc` serves `build/`.
 - **Signalling server:** `cd signalling && npx wrangler deploy`. Add the site's
   address to `ALLOWED_ORIGINS` in `signalling/wrangler.jsonc`.
-- **Firebase:** `npx firebase-tools deploy --only firestore:rules,storage,functions`.
+- **Firebase:** on Node 24, `npx firebase-tools deploy --only firestore:rules,storage,functions`.
 
 ## Built with
 

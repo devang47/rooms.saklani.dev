@@ -76,7 +76,7 @@
 <svelte:window bind:innerWidth />
 
 <section class="chat-ui !h-fit min-h-screen !py-20">
-  <div class="container !h-fit !rounded-xl">
+  <div class="container !h-fit !max-h-none !rounded-xl">
     <ChatHeaderWebrtc />
 
     <div class="grid h-full md:p-6">
@@ -113,7 +113,7 @@
                 Waiting for connections ...
               </div>
             {:else}
-              <div class="mt-3 flex items-center gap-4">
+              <div class="mt-3 flex flex-wrap items-center gap-2 md:gap-4">
                 {#each $connectionState.list as conn}
                   <button
                     class="enter press rounded-md px-4 py-2 text-center text-sm font-semibold {$connectionState.selectedId ===
